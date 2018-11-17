@@ -53,7 +53,7 @@ def main(args=None):
             deltas = sorted(by_strength)
             for j, strength in enumerate(deltas):
                 by_monitor = by_strength[strength]
-                names = ('name', 's/m', 'x/mm', 'dx/mm', 'y/mm', 'dy/mm')
+                names = ('name', 's/m', 'x/mm', 'x_err/mm', 'y/mm', 'y_err/mm')
                 align = 'lrrrrr'
                 formats = [''] + 5 * ['8.5f']
                 orbit_table = np.array([
