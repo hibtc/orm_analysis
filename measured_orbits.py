@@ -65,9 +65,9 @@ def main(args=None):
                     (monitor, elements[monitor].position, *values.T.flat)
                     for monitor, values in zip(ana.monitors, orbit_table * 1e3)
                 ])
-                basename = (f'{prefix}orbit-{i}_base' if knob is None else
-                            f'{prefix}orbit-{i}_{knob}-{j}')
-                with open(f'{basename}.txt', 'wt') as f:
+                basename = (f'{prefix}{i}_base' if knob is None else
+                            f'{prefix}{i}_{knob}-{j}')
+                with open(f'{basename}.orbit', 'wt') as f:
                     f.write(text)
 
                 str_data = format_strengths(
