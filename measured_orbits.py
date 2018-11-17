@@ -48,6 +48,11 @@ def main(args=None):
                   .setdefault(strength, {})[monitor] = (orbit, variance ** 0.5)
 
         nan = np.ones((2, 2)) * np.nan
+        base_orbit = np.array([
+            list(orbits[None][None].get(monitor, nan))
+            for monitor in ana.monitors
+        ])
+
         for i, knob in enumerate([None] + ana.knobs):
             by_strength = orbits[knob]
             deltas = sorted(by_strength)
@@ -78,6 +83,21 @@ def main(args=None):
                     })
                 with open(f'{basename}.str', 'wt') as f:
                     f.write(str_data)
+
+                if knob is not None:
+                    response = np.dstack((
+                        (orbit_table[:, 0, :] - base_orbit[:, 0, :]),
+                        (orbit_table[:, 1, :] ** 2 + base_orbit[:, 1, :] ** 2)
+                        ** 0.5,
+                    ))
+
+                    text = format_table(names, align, formats, [
+                        (monitor, elements[monitor].position, *values.flat)
+                        for monitor, values in zip(
+                                ana.monitors, response * 1e3)
+                    ])
+                    with open(f'{basename}.delta', 'wt') as f:
+                        f.write(text)
 
 
 def format_table(names, align, formats, table, sep='   '):
