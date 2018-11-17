@@ -16,6 +16,7 @@ import os
 from itertools import starmap
 
 from docopt import docopt
+import numpy as np
 
 from madgui.model.orm import Analysis
 
@@ -46,7 +47,7 @@ def main(args=None):
             orbits.setdefault(knob, {}) \
                   .setdefault(strength, {})[monitor] = (orbit, variance ** 0.5)
 
-        null = (0, 0), (0, 0)
+        zero = np.zeros((2, 2))
         for i, knob in enumerate([None] + ana.knobs):
             by_strength = orbits[knob]
             deltas = sorted(orbits[knob])
@@ -55,17 +56,19 @@ def main(args=None):
                 names = ('name', 's/m', 'x/mm', 'dx/mm', 'y/mm', 'dy/mm')
                 align = 'lrrrrr'
                 formats = [''] + 5 * ['.5f']
-                orbit_table = format_table(names, align, formats, [
-                    (monitor, elements[monitor].position,
-                     orbit[0] * 1e3, error[0] * 1e3,
-                     orbit[1] * 1e3, error[1] * 1e3)
+                orbit_table = np.array([
+                    list(by_monitor.get(monitor, zero))
                     for monitor in ana.monitors
-                    for orbit, error in [by_monitor.get(monitor, null)]
+                ])
+
+                text = format_table(names, align, formats, [
+                    (monitor, elements[monitor].position, *values.T.flat)
+                    for monitor, values in zip(ana.monitors, orbit_table * 1e3)
                 ])
                 basename = (f'{prefix}orbit-{i}_base' if knob is None else
                             f'{prefix}orbit-{i}_{knob}-{j}')
                 with open(f'{basename}.txt', 'wt') as f:
-                    f.write(orbit_table)
+                    f.write(text)
 
                 str_data = format_strengths(
                     strengths if knob is None else {
