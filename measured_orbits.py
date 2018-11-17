@@ -55,7 +55,7 @@ def main(args=None):
                 by_monitor = by_strength[strength]
                 names = ('name', 's/m', 'x/mm', 'dx/mm', 'y/mm', 'dy/mm')
                 align = 'lrrrrr'
-                formats = [''] + 5 * ['.5f']
+                formats = [''] + 5 * ['8.5f']
                 orbit_table = np.array([
                     list(by_monitor.get(monitor, zero))
                     for monitor in ana.monitors
