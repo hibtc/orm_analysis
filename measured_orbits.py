@@ -50,7 +50,7 @@ def main(args=None):
         zero = np.zeros((2, 2))
         for i, knob in enumerate([None] + ana.knobs):
             by_strength = orbits[knob]
-            deltas = sorted(orbits[knob])
+            deltas = sorted(by_strength)
             for j, strength in enumerate(deltas):
                 by_monitor = by_strength[strength]
                 names = ('name', 's/m', 'x/mm', 'dx/mm', 'y/mm', 'dy/mm')
