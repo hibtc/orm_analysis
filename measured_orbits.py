@@ -47,7 +47,7 @@ def main(args=None):
             orbits.setdefault(knob, {}) \
                   .setdefault(strength, {})[monitor] = (orbit, variance ** 0.5)
 
-        zero = np.zeros((2, 2))
+        nan = np.ones((2, 2)) * np.nan
         for i, knob in enumerate([None] + ana.knobs):
             by_strength = orbits[knob]
             deltas = sorted(by_strength)
@@ -57,7 +57,7 @@ def main(args=None):
                 align = 'lrrrrr'
                 formats = [''] + 5 * ['8.5f']
                 orbit_table = np.array([
-                    list(by_monitor.get(monitor, zero))
+                    list(by_monitor.get(monitor, nan))
                     for monitor in ana.monitors
                 ])
 
