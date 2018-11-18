@@ -17,6 +17,7 @@ Arguments:
 """
 
 import os
+from shutil import copyfile
 
 import numpy as np
 from docopt import docopt
@@ -25,7 +26,7 @@ from madgui.model.errors import parse_error, apply_errors, Param
 from madgui.model.orm import Analysis
 import madgui.util.yaml as yaml
 
-from util import format_table
+from util import format_table, format_strengths
 
 
 def get_orbit(model, errors, values):
@@ -69,6 +70,11 @@ def main(args=None):
         specs = [specs]
 
     prefix = (opts['--output'] or default_prefix) + '/'
+    os.makedirs(prefix, exist_ok=True)
+    if opts['--init']:
+        copyfile(opts['--init'], f'{prefix}spec_init.yml')
+    if opts['--error']:
+        copyfile(opts['--error'], f'{prefix}spec_error.yml')
 
     with Analysis.app(model_file, record_files) as ana:
         model = ana.model
@@ -86,6 +92,10 @@ def main(args=None):
 
 def output_orbits(ana, prefix, errors, values):
     os.makedirs(prefix, exist_ok=True)
+
+    spec = format_strengths(dict(zip(map(repr, errors), values)))
+    with open(f'{prefix}errors.txt', 'wt') as f:
+        f.write(spec.replace('=', ':'))
 
     model = ana.model
     strengths = ana.measured.strengths
