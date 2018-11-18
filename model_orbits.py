@@ -47,11 +47,10 @@ def main(args=None):
         ['../data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1'])
 
     if len(record_files) == 1 and os.path.isdir(record_files[0]):
-        default_prefix = record_files[0] + '_/'
+        default_prefix = record_files[0] + '_'
         record_files = record_files[0] + '/*.yml'
     else:
         default_prefix = 'orbits'
-    prefix = (opts['--output'] or default_prefix) + '/'
 
     if opts['--init']:
         g_spec = yaml.load_file(opts['--init'])
@@ -62,10 +61,14 @@ def main(args=None):
 
     if opts['--error']:
         specs = yaml.load_file(opts['--error'])
+        default_prefix += '/' + os.path.splitext(
+            os.path.basename(opts['--error']))[0]
     else:
         specs = [{}]
     if isinstance(specs, dict):
         specs = [specs]
+
+    prefix = (opts['--output'] or default_prefix) + '/'
 
     with Analysis.app(model_file, record_files) as ana:
         model = ana.model
