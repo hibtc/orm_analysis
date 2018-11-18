@@ -80,7 +80,7 @@ def main(args=None):
         for i, spec in enumerate(specs):
             errors = list(map(parse_error, spec.keys())) + g_errors
             values = list(spec.values()) + g_values
-            errname = repr(errors[0]) if len(spec) == 1 else ''
+            errname = '_' + repr(errors[0]) if len(spec) == 1 else ''
             output_orbits(ana, f'{prefix}/model_{i}{errname}/', errors, values)
 
 
