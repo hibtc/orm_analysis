@@ -13,12 +13,12 @@ Arguments:
 """
 
 import os
-from itertools import starmap
 
 from docopt import docopt
 import numpy as np
 
 from madgui.model.orm import Analysis
+from util import format_table, format_strengths
 
 
 def main(args=None):
@@ -60,7 +60,7 @@ def main(args=None):
                 by_monitor = by_strength[strength]
                 names = ('name', 's/m', 'x/mm', 'x_err/mm', 'y/mm', 'y_err/mm')
                 align = 'lrrrrr'
-                formats = [''] + 5 * ['8.5f']
+                formats = [''] + 5 * ['9.5f']
                 orbit_table = np.array([
                     list(by_monitor.get(monitor, nan))
                     for monitor in ana.monitors
@@ -72,7 +72,7 @@ def main(args=None):
                 ])
                 basename = (f'{prefix}{i}_base' if knob is None else
                             f'{prefix}{i}_{knob}-{j}')
-                with open(f'{basename}.orbit', 'wt') as f:
+                with open(f'{basename}_measured.orbit', 'wt') as f:
                     f.write(text)
 
                 str_data = format_strengths(
@@ -96,40 +96,8 @@ def main(args=None):
                         for monitor, values in zip(
                                 ana.monitors, response * 1e3)
                     ])
-                    with open(f'{basename}.delta', 'wt') as f:
+                    with open(f'{basename}_measured.delta', 'wt') as f:
                         f.write(text)
-
-
-def format_table(names, align, formats, table, sep='   '):
-    header = ['# ' + names[0]] + list(names[1:])
-    cells = [header] + [
-        list(starmap(format, zip(items, formats)))
-        for items in table
-    ]
-    widths = list(map(max, zip(*[
-        map(len, items) for items in cells
-    ])))
-    return '\n'.join([
-        sep.join(starmap(adjust, zip(items, align, widths)))
-        for items in cells
-    ])
-
-
-_adjust = {
-    'l': str.ljust,
-    'r': str.rjust,
-}
-
-
-def adjust(s, a, w):
-    return _adjust[a](s, w)
-
-
-def format_strengths(data):
-    return ''.join([
-        '{} = {!r};\n'.format(k, v)
-        for k, v in data.items()
-    ])
 
 
 if __name__ == '__main__':
