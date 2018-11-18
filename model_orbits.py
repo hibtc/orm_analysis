@@ -2,11 +2,12 @@
 Compute model orbits and responses.
 
 Usage:
-    ./plot_responses.py [-m MODEL] [-o DIR] [-e ERRORS] [RECORDS]...
+    ./plot_responses.py [-m MODEL] [-o DIR] [-i ERRORS] [-e ERRORS] [RECORDS]...
 
 Options:
     -m MODEL, --model MODEL         path to model file
     -o DIR, --output DIR            output base directory
+    -i FILE, --init FILE            file with global error definitions
     -e FILE, --error FILE           file with error definitions
 
 Arguments:
@@ -52,6 +53,13 @@ def main(args=None):
         default_prefix = 'orbits'
     prefix = (opts['--output'] or default_prefix) + '/'
 
+    if opts['--init']:
+        g_spec = yaml.load_file(opts['--init'])
+    else:
+        g_spec = {}
+    g_errors = list(map(parse_error, g_spec.keys()))
+    g_values = list(g_spec.values())
+
     if opts['--error']:
         specs = yaml.load_file(opts['--error'])
     else:
@@ -67,9 +75,9 @@ def main(args=None):
         model.update_globals(strengths.items())
 
         for i, spec in enumerate(specs):
-            errors = list(map(parse_error, spec.keys()))
-            values = list(spec.values())
-            errname = repr(errors[0]) if len(errors) == 1 else ''
+            errors = list(map(parse_error, spec.keys())) + g_errors
+            values = list(spec.values()) + g_values
+            errname = repr(errors[0]) if len(spec) == 1 else ''
             output_orbits(ana, f'{prefix}/model_{i}{errname}/', errors, values)
 
 
