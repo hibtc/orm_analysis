@@ -72,7 +72,7 @@ def main(args=None):
                 ])
                 basename = (f'{prefix}{i}_base' if knob is None else
                             f'{prefix}{i}_{knob}-{j}')
-                with open(f'{basename}_measured.orbit', 'wt') as f:
+                with open(f'{basename}.orbit', 'wt') as f:
                     f.write(text)
 
                 str_data = format_strengths(
@@ -96,7 +96,7 @@ def main(args=None):
                         for monitor, values in zip(
                                 ana.monitors, response * 1e3)
                     ])
-                    with open(f'{basename}_measured.delta', 'wt') as f:
+                    with open(f'{basename}.delta', 'wt') as f:
                         f.write(text)
 
 

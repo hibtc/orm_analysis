@@ -52,60 +52,70 @@ def main(args=None):
         default_prefix = 'orbits'
     prefix = (opts['--output'] or default_prefix) + '/'
 
-    os.makedirs(prefix, exist_ok=True)
-
     if opts['--error']:
-        spec = yaml.load_file(opts['--error'])
+        specs = yaml.load_file(opts['--error'])
     else:
-        spec = {}
-    errors = list(map(parse_error, spec.keys()))
-    values = list(spec.values())
+        specs = [{}]
+    if isinstance(specs, dict):
+        specs = [specs]
 
     with Analysis.app(model_file, record_files) as ana:
         model = ana.model
         strengths = ana.measured.strengths
-        monitors = ana.monitors
-        knobs = ana.knobs
-        elements = model.elements
-        deltas = {
-            knob: strength - strengths[knob]
-            for (_, knob), (strength, __, ___) in ana.measured.records.items()
-            if knob is not None
-        }
 
         model.madx.eoption(add=True)
         model.update_globals(strengths.items())
 
-        sel = [model.elements.index(m) for m in monitors]
-        orbits = np.array([get_orbit(model, errors, values)] + [
-            get_orbit(model, [Param(knob)] + errors, [deltas[knob]] + values)
-            for knob in knobs
-        ])[:, sel, :]
+        for i, spec in enumerate(specs):
+            errors = list(map(parse_error, spec.keys()))
+            values = list(spec.values())
+            errname = repr(errors[0]) if len(errors) == 1 else ''
+            output_orbits(ana, f'{prefix}/model_{i}{errname}/', errors, values)
 
-        for i, (knob, orbit) in enumerate(zip([None] + knobs, orbits)):
 
-            names = ('name', 's/m', 'x/mm', 'y/mm')
-            align = 'lrrr'
-            formats = [''] + 3 * ['9.5f']
+def output_orbits(ana, prefix, errors, values):
+    os.makedirs(prefix, exist_ok=True)
+
+    model = ana.model
+    strengths = ana.measured.strengths
+    monitors = ana.monitors
+    knobs = ana.knobs
+    elements = model.elements
+    deltas = {
+        knob: strength - strengths[knob]
+        for (_, knob), (strength, __, ___) in ana.measured.records.items()
+        if knob is not None
+    }
+
+    sel = [model.elements.index(m) for m in monitors]
+    orbits = np.array([get_orbit(model, errors, values)] + [
+        get_orbit(model, [Param(knob)] + errors, [deltas[knob]] + values)
+        for knob in knobs
+    ])[:, sel, :]
+
+    for i, (knob, orbit) in enumerate(zip([None] + knobs, orbits)):
+        names = ('name', 's/m', 'x/mm', 'y/mm')
+        align = 'lrrr'
+        formats = [''] + 3 * ['9.5f']
+
+        text = format_table(names, align, formats, [
+            (monitor, elements[monitor].position, *values.flat)
+            for monitor, values in zip(monitors, orbit * 1e3)
+        ])
+        basename = (f'{prefix}{i}_base' if knob is None else
+                    f'{prefix}{i}_{knob}')
+        with open(f'{basename}.orbit', 'wt') as f:
+            f.write(text)
+
+        if knob is not None:
+            response = orbit - orbits[0]
 
             text = format_table(names, align, formats, [
                 (monitor, elements[monitor].position, *values.flat)
-                for monitor, values in zip(monitors, orbit * 1e3)
+                for monitor, values in zip(monitors, response * 1e3)
             ])
-            basename = (f'{prefix}{i}_base' if knob is None else
-                        f'{prefix}{i}_{knob}')
-            with open(f'{basename}_model.orbit', 'wt') as f:
+            with open(f'{basename}.delta', 'wt') as f:
                 f.write(text)
-
-            if knob is not None:
-                response = orbit - orbits[0]
-
-                text = format_table(names, align, formats, [
-                    (monitor, elements[monitor].position, *values.flat)
-                    for monitor, values in zip(monitors, response * 1e3)
-                ])
-                with open(f'{basename}_model.delta', 'wt') as f:
-                    f.write(text)
 
 
 if __name__ == '__main__':
