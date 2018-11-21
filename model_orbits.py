@@ -102,9 +102,10 @@ def output_orbits(ana, prefix, errors, values):
     monitors = ana.monitors
     knobs = ana.knobs
     elements = model.elements
+    records = ana.measured.records
     deltas = {
         knob: strength - strengths[knob]
-        for (_, knob), (strength, __, ___) in ana.measured.records.items()
+        for (monitor, knob), (strength, orbit, error) in records.items()
         if knob is not None
     }
 
