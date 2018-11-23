@@ -2,7 +2,7 @@
 Compute model orbits and responses.
 
 Usage:
-    ./plot_responses.py [-m MODEL] [-o DIR] [-i ERRORS] [-e ERRORS] [RECORDS]...
+    ./model_orbits.py [-m MODEL] [-o DIR] [-i ERRORS] [-e ERRORS] [RECORDS]...
 
 Options:
     -m MODEL, --model MODEL         path to model file
@@ -45,7 +45,7 @@ def main(args=None):
     model_file = opts['--model'] or '../hit_models/hht3'
     record_files = (
         opts['RECORDS'] or
-        ['../data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1'])
+        ['2018-10-20-orm_measurements/M8-E108-F1-I9-G1'])
 
     if len(record_files) == 1 and os.path.isdir(record_files[0]):
         default_prefix = record_files[0] + '_'
