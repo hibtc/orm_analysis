@@ -1,0 +1,72 @@
+############
+## KNOBS  ##
+############
+
+# hkicker
+- δax_h1ms2: -2
+- δax_h1mb1: -2
+- δax_h1ms3: -2
+- δax_h3ms1: -2
+- δax_h3ms3: -2
+- δax_b3ms1: -2
+- δax_g3ms2: -2
+- δax_g3mw2: -2
+
+# multipole
+# δax_s3me2e: 0.1
+
+# quadrupole
+- δkl_s0qg1f:     -2
+- δkl_s0qg4d:     -2
+- δkl_h1qd11:     -2
+- δkl_h1qd12:     -2
+- δkl_h2qt11:     -2
+- δkl_h2qt12:     -2
+- δkl_h2qt13:     -2
+- δkl_h3qd11:     -2
+- δkl_h3qd12:     -2
+- δkl_h3qd21:     -2
+- δkl_h3qd22:     -2
+- δkl_b3qd11:     -2
+- δkl_b3qd12:     -2
+- δkl_b3qk2 :     -2
+- δkl_g3qd11:     -2
+- δkl_g3qd12:     -2
+- δkl_g3qd21:     -2
+- δkl_g3qd22:     -2
+- δkl_g3qd31:     -2
+- δkl_g3qd32:     -2
+- δkl_efg_g3qd41: -2
+- δkl_efg_g3qd42: -2
+
+# sbend
+#ax_s3mu1a_coc_extr: 0.05
+- δdax_s4mu1e: -2
+- δdax_s4mu2e: -2
+- δdax_b3mu1:  -2
+- δdax_b3mu2:  -2
+- δdax_g3mu1:  -2
+- δdax_g3mu2:  -2
+- δdax_g3mu3:  -2
+
+- δdax_s4mu1e: -2
+  δdax_s4mu2e: -2
+  δdax_b3mu1:  -2
+  δdax_b3mu2:  -2
+  δdax_g3mu1:  -2
+  δdax_g3mu2:  -2
+  δdax_g3mu3:  -2
+
+# srotation
+- δgantry_angle: -2
+
+# vkicker
+#δay_s3ms1v_coc_extr
+- δay_h1ms1: -2
+- δay_h1ms4: -2
+- δay_h2ms1: -2
+- δay_h3ms2: -2
+- δay_h3ms4: -2
+- δay_b3ms2: -2
+- δay_g3ms1: -2
+- δay_g3mw1: -2
