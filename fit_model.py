@@ -31,35 +31,24 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     e_orbit = parse_errors(['x', 'y', 'px', 'py'])
 
     e_ealign = parse_errors([
-        '{}<{}>'.format(elem.name, err)
+        f'{elem.name}<{err}>'
         for elem in quads + bends
         for err in ['dx', 'dy', 'ds', 'dphi', 'dtheta', 'dpsi']
     ])
 
-    e_quad_k1 = parse_errors([
-        'δ{}->k1'.format(elem.name)
-        for elem in quads
-    ])
-
-    e_bend_k1 = parse_errors([
-        'Δ{}->k1'.format(elem.name)
-        for elem in bends
-    ])
-
-    e_bend_angle = parse_errors([
-        'Δ{}->angle'.format(elem.name)
-        for elem in bends
-    ])
+    e_quad_k1 = parse_errors([f'δ{elem.name}->k1' for elem in quads])
+    e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends])
+    e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends])
 
     e_kick = parse_errors([
-        'δ{}'.format(knob)
+        f'δ{knob}'
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] in ('ax', 'ay', 'dax')
         and par.var_type == VAR_TYPE_DIRECT
     ])
 
     e_patch = parse_errors([
-        '{}->{}'.format(elem.name, err)
+        f'{elem.name}->{err}'
         for elem in patch
         for err in ('x', 'y', 'px', 'py')
     ])
