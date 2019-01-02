@@ -62,6 +62,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         e_kick,
         e_patch,
     ), [])
+    monitors = ana.monitors
 
     options = dict(
         algorithm='svd',
@@ -72,7 +73,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         fourier=True,
     )
 
-    ana.fit(errors, ana.monitors, save_to='plots/2-fit.txt', **options)
+    ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
 
-    ana.plot_monitors(['g3dg5g'], save_to='plots/3-final')
+    ana.plot_monitors(monitors, save_to='plots/3-final')
     ana.plot_orbit(save_to='plots/3-final')
