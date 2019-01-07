@@ -81,6 +81,13 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends])
     e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends])
 
+    e_bend_angle = parse_errors([
+        f'Δ{knob}'
+        for knob, par in ana.model.globals.cmdpar.items()
+        if knob.split('_')[0] == 'dax'
+        and par.var_type == VAR_TYPE_DIRECT
+    ])
+
     e_kick = parse_errors([
         f'δ{knob}'
         for knob, par in ana.model.globals.cmdpar.items()
@@ -94,18 +101,40 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         for err in ('x', 'y', 'px', 'py')
     ])
 
+    e_patch = parse_errors([
+        'x_g3tx1',
+        'y_g3tx1',
+        'px_g3tx1',
+        'py_g3tx1',
+    ])
+
+    # TODO:
+    # - fit iteratively on last element using differences
+    # - add final offset in the end
+    # - impose further constraint = same end position/angle
+
+    # TODO: plot all orbits
+
     errors = sum((
-        e_ealign,
-        e_quad_k1,
-        e_bend_k1,
+    #   e_ealign,
+    #   e_quad_k1,
+    #   e_bend_k1,
         e_bend_angle,
-        e_kick,
+    #   e_kick,
         e_patch,
     ), [])
+
+    errors = parse_errors([
+        'Δx_g3tx1', 'Δy_g3tx1',
+        'Δpx_g3tx1', 'Δpy_g3tx1',
+        'Δdax_g3mu1', 'Δdax_g3mu2', 'Δdax_g3mu3',
+        'Δdax_b3mu1', 'Δdax_b3mu2',
+    ]) + e_kick
+
     monitors = ana.monitors
 
     options = dict(
-        algorithm='svd',
+        algorithm='lstsq',
         mode='xy',
         iterations=30,
         delta=1e-5,
