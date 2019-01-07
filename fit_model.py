@@ -64,7 +64,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     ana.init()
 
-    base_orbit = ana.plot_orbit(save_to='plots/0-init')
+    ana.plot_orbit(save_to='plots/0-init')
 
     madx = ana.model.madx
     elems = ana.model.elements
@@ -145,4 +145,4 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
 
     ana.plot_monitors(monitors, save_to='plots/3-final')
-    ana.plot_orbit(save_to='plots/3-final', base_orbit=base_orbit)
+    ana.plot_orbit(save_to='plots/3-final')
