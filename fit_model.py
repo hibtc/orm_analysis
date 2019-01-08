@@ -59,6 +59,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ana.model.reverse()
     ana.model.update_twiss_args(reverse_init_orbits[None])
     ana.measured.orm[:, 0, :] *= -1
+    ana.measured.stddev[:, :, :] = 1e-3
 
     ana.init()
 
@@ -77,7 +78,13 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         for err in ['dx', 'dy', 'ds', 'dphi', 'dtheta', 'dpsi']
     ])
 
-    e_quad_k1 = parse_errors([f'δ{elem.name}->k1' for elem in quads])
+    e_ealign_quad_y = parse_errors([
+        f'{elem.name}<{err}>'
+        for elem in quads
+        for err in ['dy']
+    ])
+
+    e_quad_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in quads])
     e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends])
     e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends])
 
@@ -92,6 +99,13 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         f'δ{knob}'
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] in ('ax', 'ay', 'dax')
+        and par.var_type == VAR_TYPE_DIRECT
+    ])
+
+    e_kick_y = parse_errors([
+        f'δ{knob}'
+        for knob, par in ana.model.globals.cmdpar.items()
+        if knob.split('_')[0] == 'ay'
         and par.var_type == VAR_TYPE_DIRECT
     ])
 
@@ -127,7 +141,9 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         'Δpx_g3tx1', 'Δpy_g3tx1',
         'Δdax_g3mu1', 'Δdax_g3mu2', 'Δdax_g3mu3',
         'Δdax_b3mu1', 'Δdax_b3mu2',
-    ]) + e_kick
+        'δdax_g3mu1', 'δdax_g3mu2', 'δdax_g3mu3',
+        'δdax_b3mu1', 'δdax_b3mu2',
+    ])
 
     monitors = ana.monitors
 
@@ -137,7 +153,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         iterations=30,
         delta=1e-5,
         bounds=Bounds(-0.001, 0.001),
-        fourier=True,
+        fourier=False,
     )
 
     ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
