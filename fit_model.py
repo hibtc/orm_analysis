@@ -2,7 +2,6 @@ import sys
 from madgui.model.errors import parse_error, apply_errors, Param
 from madgui.online.orbit import fit_particle_readouts, Readout
 from scipy.optimize import Bounds
-import numpy as np
 
 from cpymad.types import VAR_TYPE_DIRECT
 
@@ -51,10 +50,9 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         values = [deltas[knob]] + vals if knob else vals
 
         with apply_errors(model, errors, values):
-            tf = madx.twiss(
+            return madx.twiss(
                 table='orm_tmp', sequence='hht3',
                 betx=1, bety=1, **reverse_init_orbits[knob])
-            return np.stack((tf.x, tf.y)).T
 
     ana._get_orbit = get_orbit
 
