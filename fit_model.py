@@ -127,6 +127,16 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         'py_g3tx1',
     ])
 
+    e_sbend_edges = parse_errors([
+        f'{elem.name}->e1'
+        for elem in bends
+        #if elem.cmdpar.e1.inform
+    ] + [
+        f'{elem.name}->e2'
+        for elem in bends
+        #if elem.cmdpar.e2.inform
+    ])
+
     # TODO:
     # - fit iteratively on last element using differences
     # - add final offset in the end
@@ -142,18 +152,18 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ), [])
 
     errors = parse_errors([
-        'Δx_g3tx0', 'Δy_g3tx0', 'Δpx_g3tx0', 'Δpy_g3tx0',
-        'Δx_g3tx3', 'Δy_g3tx3',
+    #   'Δx_g3tx0', 'Δy_g3tx0', 'Δpx_g3tx0', 'Δpy_g3tx0',
+    #   'Δx_g3tx3', 'Δy_g3tx3',
         'Δpx_g3tx3', 'Δpy_g3tx3',
-        'Δx_g3tx2', 'Δy_g3tx2', 'Δpx_g3tx2', 'Δpy_g3tx2',
-        'Δx_g3tx1', 'Δy_g3tx1',
-        'Δpx_g3tx1', 'Δpy_g3tx1',
-        'Δx_b3tx2', 'Δy_b3tx2', 'Δpx_b3tx2', 'Δpy_b3tx2',
-        'Δx_b3tx1', 'Δy_b3tx1', 'Δpx_b3tx1', 'Δpy_b3tx1',
-        'Δx_h2tx1', 'Δy_h2tx1', 'Δpx_h2tx1', 'Δpy_h2tx1',
+    #   'Δx_g3tx2', 'Δy_g3tx2', 'Δpx_g3tx2', 'Δpy_g3tx2',
+    #   'Δx_g3tx1', 'Δy_g3tx1',
+    #   'Δpx_g3tx1', 'Δpy_g3tx1',
+    #   'Δx_b3tx2', 'Δy_b3tx2', 'Δpx_b3tx2', 'Δpy_b3tx2',
+    #   'Δx_b3tx1', 'Δy_b3tx1', 'Δpx_b3tx1', 'Δpy_b3tx1',
+    #   'Δx_h2tx1', 'Δy_h2tx1', 'Δpx_h2tx1', 'Δpy_h2tx1',
 
-        'Δx_h1tx1', 'Δy_h1tx1', 'Δpx_h1tx1', 'Δpy_h1tx1',
-        'Δx_h1tx2', 'Δy_h1tx2', 'Δpx_h1tx2', 'Δpy_h1tx2',
+    #   'Δx_h1tx1', 'Δy_h1tx1', 'Δpx_h1tx1', 'Δpy_h1tx1',
+    #   'Δx_h1tx2', 'Δy_h1tx2', 'Δpx_h1tx2', 'Δpy_h1tx2',
 
         'Δdax_g3mu1', 'Δdax_g3mu2', 'Δdax_g3mu3',
         'Δdax_b3mu1',
@@ -165,21 +175,22 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     #   'Δay_h3ms4',
     #   'δay_b3ms2',
     #   'δay_b3ms2',
-    ]) + e_quad_k1 + e_kick + e_bend_k1
+    ]) + e_quad_k1 + e_kick + e_sbend_edges
 
     monitors = ana.monitors
 
     options = dict(
         algorithm='lstsq',
         mode='xy',
-        iterations=30,
+        iterations=8,
         delta=1e-3,
         bounds=Bounds(-0.001, 0.001),
-        fourier=False,
-        rcond=1e-3,
+        fourier=True,
+        rcond=1e-4,
     )
 
     ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
 
     ana.plot_monitors(monitors, save_to='plots/3-final')
     ana.plot_orbit(save_to='plots/3-final')
+    ana.plot_steerers(save_to='plots/3-final')
