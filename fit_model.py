@@ -142,30 +142,30 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ), [])
 
     errors = parse_errors([
-    #   'Δx_g3tx0', 'Δy_g3tx0', 'Δpx_g3tx0', 'Δpy_g3tx0',
-    #   'Δx_g3tx3', 'Δy_g3tx3',
-    #   'Δpx_g3tx3', 'Δpy_g3tx3',
-    #   'Δx_g3tx2', 'Δy_g3tx2', 'Δpx_g3tx2', 'Δpy_g3tx2',
-    #   'Δx_g3tx1', 'Δy_g3tx1',
-    #   'Δpx_g3tx1', 'Δpy_g3tx1',
-    #   'Δx_b3tx2', 'Δy_b3tx2', 'Δpx_b3tx2', 'Δpy_b3tx2',
-    #   'Δx_b3tx1', 'Δy_b3tx1', 'Δpx_b3tx1', 'Δpy_b3tx1',
-    #   'Δx_h2tx1', 'Δy_h2tx1', 'Δpx_h2tx1', 'Δpy_h2tx1',
+        'Δx_g3tx0', 'Δy_g3tx0', 'Δpx_g3tx0', 'Δpy_g3tx0',
+        'Δx_g3tx3', 'Δy_g3tx3',
+        'Δpx_g3tx3', 'Δpy_g3tx3',
+        'Δx_g3tx2', 'Δy_g3tx2', 'Δpx_g3tx2', 'Δpy_g3tx2',
+        'Δx_g3tx1', 'Δy_g3tx1',
+        'Δpx_g3tx1', 'Δpy_g3tx1',
+        'Δx_b3tx2', 'Δy_b3tx2', 'Δpx_b3tx2', 'Δpy_b3tx2',
+        'Δx_b3tx1', 'Δy_b3tx1', 'Δpx_b3tx1', 'Δpy_b3tx1',
+        'Δx_h2tx1', 'Δy_h2tx1', 'Δpx_h2tx1', 'Δpy_h2tx1',
 
-    #   'Δx_h1tx1', 'Δy_h1tx1', 'Δpx_h1tx1', 'Δpy_h1tx1',
-    #   'Δx_h1tx2', 'Δy_h1tx2', 'Δpx_h1tx2', 'Δpy_h1tx2',
+        'Δx_h1tx1', 'Δy_h1tx1', 'Δpx_h1tx1', 'Δpy_h1tx1',
+        'Δx_h1tx2', 'Δy_h1tx2', 'Δpx_h1tx2', 'Δpy_h1tx2',
 
         'Δdax_g3mu1', 'Δdax_g3mu2', 'Δdax_g3mu3',
         'Δdax_b3mu1',
         'Δdax_b3mu2',
-       #'δay_b3ms1',
-   #    'δdax_g3mu1', 'δdax_g3mu2', 'δdax_g3mu3',
-   #    'δdax_b3mu1', 'δdax_b3mu2',
+    #   'δay_b3ms1',
+    #   'δdax_g3mu1', 'δdax_g3mu2', 'δdax_g3mu3',
+    #   'δdax_b3mu1', 'δdax_b3mu2',
     #   'δay_h3ms4',
     #   'Δay_h3ms4',
     #   'δay_b3ms2',
     #   'δay_b3ms2',
-    ]) + e_quad_k1 + e_kick # + e_bend_k1
+    ]) + e_quad_k1 + e_kick + e_bend_k1
 
     monitors = ana.monitors
 
@@ -176,7 +176,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         delta=1e-3,
         bounds=Bounds(-0.001, 0.001),
         fourier=False,
-        rcond=1e-4,
+        rcond=1e-3,
     )
 
     ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
