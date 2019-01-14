@@ -72,27 +72,42 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     kicks = [elem for elem in elems if elem.base_name.endswith('kicker')]
     patch = [elem for elem in elems if elem.base_name == 'translation']
 
+    blacklist = [
+        's4mu1e', 's4mu2e',
+        's3me2e', 's3mu1a', 's3ms1v',
+        's0qg4d', 's0qg1f',
+    ]
+
+    def blacklisted(name):
+        return name in blacklist or any(b in name for b in blacklist)
+
     e_ealign = parse_errors([
         f'{elem.name}<{err}>'
         for elem in quads + bends
         for err in ['dx', 'dy', 'ds', 'dphi', 'dtheta', 'dpsi']
+        if not blacklisted(elem.name.lower())
     ])
 
     e_ealign_quad_y = parse_errors([
         f'{elem.name}<{err}>'
         for elem in quads
         for err in ['dy']
+        if not blacklisted(elem.name.lower())
     ])
 
-    e_quad_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in quads])
-    e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends])
-    e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends])
+    e_quad_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in quads
+        if not blacklisted(elem.name.lower())])
+    e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends
+        if not blacklisted(elem.name.lower())])
+    e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends
+        if not blacklisted(elem.name.lower())])
 
     e_bend_angle = parse_errors([
         f'Δ{knob}'
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] == 'dax'
         and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
     ])
 
     e_kick = parse_errors([
@@ -100,6 +115,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] in ('ax', 'ay', 'dax')
         and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
     ])
 
     e_kick_y = parse_errors([
@@ -107,17 +123,20 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] == 'ay'
         and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
     ] + [
         f'Δ{knob}'
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] == 'ay'
         and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
     ])
 
     e_patch = parse_errors([
         f'{elem.name}->{err}'
         for elem in patch
         for err in ('x', 'y', 'px', 'py')
+        if not blacklisted(elem.name.lower())
     ])
 
     e_patch = parse_errors([
@@ -130,11 +149,13 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     e_sbend_edges = parse_errors([
         f'{elem.name}->e1'
         for elem in bends
-        #if elem.cmdpar.e1.inform
+        if not blacklisted(elem.name.lower())
+        #and elem.cmdpar.e1.inform
     ] + [
         f'{elem.name}->e2'
         for elem in bends
-        #if elem.cmdpar.e2.inform
+        if not blacklisted(elem.name.lower())
+        #and elem.cmdpar.e2.inform
     ])
 
     # TODO:
@@ -154,7 +175,8 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     errors = parse_errors([
     #   'Δx_g3tx0', 'Δy_g3tx0', 'Δpx_g3tx0', 'Δpy_g3tx0',
     #   'Δx_g3tx3', 'Δy_g3tx3',
-        'Δpx_g3tx3', 'Δpy_g3tx3',
+        'Δpx_g3tx3',
+        'Δpy_g3tx3',
     #   'Δx_g3tx2', 'Δy_g3tx2', 'Δpx_g3tx2', 'Δpy_g3tx2',
     #   'Δx_g3tx1', 'Δy_g3tx1',
     #   'Δpx_g3tx1', 'Δpy_g3tx1',
@@ -175,7 +197,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     #   'Δay_h3ms4',
     #   'δay_b3ms2',
     #   'δay_b3ms2',
-    ]) + e_quad_k1 + e_kick + e_sbend_edges
+    ]) + e_quad_k1 + e_kick# + e_bend_k1 + e_sbend_edges
 
     monitors = ana.monitors
 
