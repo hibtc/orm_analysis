@@ -23,9 +23,9 @@ import numpy as np
 from docopt import docopt
 
 from madgui.model.errors import parse_error, apply_errors, Param
-from madgui.model.orm import Analysis
 import madgui.util.yaml as yaml
 
+from orm_util import Analysis
 from util import format_table, format_strengths
 
 

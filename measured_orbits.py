@@ -17,7 +17,7 @@ import os
 from docopt import docopt
 import numpy as np
 
-from madgui.model.orm import Analysis
+from orm_util import Analysis
 from util import format_table, format_strengths
 
 

@@ -1,9 +1,10 @@
 import sys
 from madgui.model.errors import parse_error
-from madgui.model.orm import Analysis
 from scipy.optimize import Bounds
 
 from cpymad.types import VAR_TYPE_DIRECT
+
+from orm_util import Analysis
 
 
 def parse_errors(names):

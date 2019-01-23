@@ -20,7 +20,8 @@ from docopt import docopt
 
 import madgui.util.yaml as yaml
 from madgui.model.errors import import_errors
-from madgui.model.orm import Analysis
+
+from orm_util import Analysis
 
 opts = docopt(__doc__)
 
