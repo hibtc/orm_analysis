@@ -8,7 +8,7 @@ from cpymad.madx import TwissFailed
 import madgui.util.yaml as yaml
 from madgui.util.fit import reduced_chisq, fit
 from madgui.online.orbit import fit_particle_readouts, Readout
-from .errors import Ealign, Efcomp, apply_errors, Param
+from madgui.model.errors import Ealign, Efcomp, apply_errors, Param
 
 
 class OrbitResponse:
