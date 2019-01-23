@@ -59,6 +59,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ana.model.reverse()
     ana.model.update_twiss_args(reverse_init_orbits[None])
     ana.measured.orm[:, 0, :] *= -1
+    ana.measured.stddev[:, :, :] = 1e-4
 
     ana.init()
 
@@ -71,21 +72,42 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     kicks = [elem for elem in elems if elem.base_name.endswith('kicker')]
     patch = [elem for elem in elems if elem.base_name == 'translation']
 
+    blacklist = [
+        's4mu1e', 's4mu2e',
+        's3me2e', 's3mu1a', 's3ms1v',
+        's0qg4d', 's0qg1f',
+    ]
+
+    def blacklisted(name):
+        return name in blacklist or any(b in name for b in blacklist)
+
     e_ealign = parse_errors([
         f'{elem.name}<{err}>'
         for elem in quads + bends
         for err in ['dx', 'dy', 'ds', 'dphi', 'dtheta', 'dpsi']
+        if not blacklisted(elem.name.lower())
     ])
 
-    e_quad_k1 = parse_errors([f'δ{elem.name}->k1' for elem in quads])
-    e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends])
-    e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends])
+    e_ealign_quad_y = parse_errors([
+        f'{elem.name}<{err}>'
+        for elem in quads
+        for err in ['dy']
+        if not blacklisted(elem.name.lower())
+    ])
+
+    e_quad_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in quads
+        if not blacklisted(elem.name.lower())])
+    e_bend_k1 = parse_errors([f'Δ{elem.name}->k1' for elem in bends
+        if not blacklisted(elem.name.lower())])
+    e_bend_angle = parse_errors([f'Δ{elem.name}->angle' for elem in bends
+        if not blacklisted(elem.name.lower())])
 
     e_bend_angle = parse_errors([
         f'Δ{knob}'
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] == 'dax'
         and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
     ])
 
     e_kick = parse_errors([
@@ -93,12 +115,28 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         for knob, par in ana.model.globals.cmdpar.items()
         if knob.split('_')[0] in ('ax', 'ay', 'dax')
         and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
+    ])
+
+    e_kick_y = parse_errors([
+        f'δ{knob}'
+        for knob, par in ana.model.globals.cmdpar.items()
+        if knob.split('_')[0] == 'ay'
+        and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
+    ] + [
+        f'Δ{knob}'
+        for knob, par in ana.model.globals.cmdpar.items()
+        if knob.split('_')[0] == 'ay'
+        and par.var_type == VAR_TYPE_DIRECT
+        if not blacklisted(knob.lower())
     ])
 
     e_patch = parse_errors([
         f'{elem.name}->{err}'
         for elem in patch
         for err in ('x', 'y', 'px', 'py')
+        if not blacklisted(elem.name.lower())
     ])
 
     e_patch = parse_errors([
@@ -106,6 +144,18 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         'y_g3tx1',
         'px_g3tx1',
         'py_g3tx1',
+    ])
+
+    e_sbend_edges = parse_errors([
+        f'{elem.name}->e1'
+        for elem in bends
+        if not blacklisted(elem.name.lower())
+        #and elem.cmdpar.e1.inform
+    ] + [
+        f'{elem.name}->e2'
+        for elem in bends
+        if not blacklisted(elem.name.lower())
+        #and elem.cmdpar.e2.inform
     ])
 
     # TODO:
@@ -123,24 +173,46 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ), [])
 
     errors = parse_errors([
-        'Δx_g3tx1', 'Δy_g3tx1',
-        'Δpx_g3tx1', 'Δpy_g3tx1',
+    #   'Δx_g3tx0', 'Δy_g3tx0', 'Δpx_g3tx0', 'Δpy_g3tx0',
+    #   'Δx_g3tx3', 'Δy_g3tx3',
+        'Δpx_g3tx3',
+        'Δpy_g3tx3',
+    #   'Δx_g3tx2', 'Δy_g3tx2', 'Δpx_g3tx2', 'Δpy_g3tx2',
+    #   'Δx_g3tx1', 'Δy_g3tx1',
+    #   'Δpx_g3tx1', 'Δpy_g3tx1',
+    #   'Δx_b3tx2', 'Δy_b3tx2', 'Δpx_b3tx2', 'Δpy_b3tx2',
+    #   'Δx_b3tx1', 'Δy_b3tx1', 'Δpx_b3tx1', 'Δpy_b3tx1',
+    #   'Δx_h2tx1', 'Δy_h2tx1', 'Δpx_h2tx1', 'Δpy_h2tx1',
+
+    #   'Δx_h1tx1', 'Δy_h1tx1', 'Δpx_h1tx1', 'Δpy_h1tx1',
+    #   'Δx_h1tx2', 'Δy_h1tx2', 'Δpx_h1tx2', 'Δpy_h1tx2',
+
         'Δdax_g3mu1', 'Δdax_g3mu2', 'Δdax_g3mu3',
-        'Δdax_b3mu1', 'Δdax_b3mu2',
-    ]) + e_kick
+        'Δdax_b3mu1',
+        'Δdax_b3mu2',
+    #   'δay_b3ms1',
+    #   'δdax_g3mu1', 'δdax_g3mu2', 'δdax_g3mu3',
+    #   'δdax_b3mu1', 'δdax_b3mu2',
+    #   'δay_h3ms4',
+    #   'Δay_h3ms4',
+    #   'δay_b3ms2',
+    #   'δay_b3ms2',
+    ]) + e_quad_k1 + e_kick# + e_bend_k1 + e_sbend_edges
 
     monitors = ana.monitors
 
     options = dict(
         algorithm='lstsq',
         mode='xy',
-        iterations=30,
-        delta=1e-5,
+        iterations=8,
+        delta=1e-3,
         bounds=Bounds(-0.001, 0.001),
         fourier=True,
+        rcond=1e-4,
     )
 
     ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
 
     ana.plot_monitors(monitors, save_to='plots/3-final')
     ana.plot_orbit(save_to='plots/3-final')
+    ana.plot_steerers(save_to='plots/3-final')
