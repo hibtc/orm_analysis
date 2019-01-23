@@ -14,7 +14,7 @@ def parse_errors(names):
 
 record_files = (
     sys.argv[1:] or
-    '../data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+    'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
 
 def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
@@ -63,7 +63,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     ana.init()
 
-    ana.plot_orbit(save_to='plots/0-init')
+    ana.plot_orbit(save_to='results/plots/0-init')
 
     madx = ana.model.madx
     elems = ana.model.elements
@@ -211,8 +211,8 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         rcond=1e-4,
     )
 
-    ana.fit(errors, monitors, save_to='plots/2-fit.txt', **options)
+    ana.fit(errors, monitors, save_to='results/plots/2-fit.txt', **options)
 
-    ana.plot_monitors(monitors, save_to='plots/3-final')
-    ana.plot_orbit(save_to='plots/3-final')
-    ana.plot_steerers(save_to='plots/3-final')
+    ana.plot_monitors(monitors, save_to='results/plots/3-final')
+    ana.plot_orbit(save_to='results/plots/3-final')
+    ana.plot_steerers(save_to='results/plots/3-final')

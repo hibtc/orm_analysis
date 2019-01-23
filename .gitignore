@@ -29,3 +29,7 @@ pip-log.txt
 .tox
 nosetests.xml
 .pytest_cache
+
+# Input/output files
+data
+results

@@ -28,7 +28,7 @@ opts = docopt(__doc__)
 model = opts['MODEL'] or 'hit_models/hht3'
 record_files = (
     opts['RECORDS'] or
-    '../data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+    'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
 
 with Analysis.app(model, record_files) as ana:

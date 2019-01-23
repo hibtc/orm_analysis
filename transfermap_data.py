@@ -9,7 +9,7 @@ from orm_util import Analysis
 
 record_files = (
     sys.argv[1:] or
-    '../data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+    'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
 
 def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
@@ -72,7 +72,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ]).T
 
     np.savetxt(
-        'transfer_particles.txt', np.hstack((x_iso, y_obs)),
+        'results/transfer_particles.txt', np.hstack((x_iso, y_obs)),
         header="x_iso px_iso y_iso py_iso x_g3dg5g y_g3dg5g")
 
     # fit transfermap
@@ -87,7 +87,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     TT = np.hstack((S[:, 0:4], S[:, [6]]))
 
-    np.savetxt('transfer_map.txt', np.vstack((T, TT)))
+    np.savetxt('results/transfer_map.txt', np.vstack((T, TT)))
 
     y_fit = T @ x_iso.T
 
@@ -135,7 +135,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     # plot
 
-    os.makedirs('tm_plots', exist_ok=True)
+    os.makedirs('results/tm_plots', exist_ok=True)
 
     for iy, y_ax in enumerate('xy'):
         fig = plt.figure()
@@ -151,5 +151,5 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
             #ax.plot(x_iso[I, ix], y_track[iy, I], '-', label='track')
         legend = ax.legend(loc='upper center', fancybox=True,
                            bbox_to_anchor=(-0.1, -0.2), shadow=True, ncol=4)
-        fig.savefig(f'tm_plots/{y_ax}.png', bbox_inches='tight')
+        fig.savefig(f'results/tm_plots/{y_ax}.png', bbox_inches='tight')
         plt.clf()

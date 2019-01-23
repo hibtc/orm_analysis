@@ -79,7 +79,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ])
 
     np.savetxt(
-        'transfer_particles.txt', np.hstack((x_iso, y_obs, kl)),
+        'results/transfer_particles.txt', np.hstack((x_iso, y_obs, kl)),
         header="x_iso px_iso y_iso py_iso x_g3dg5g y_g3dg5g kl_g3qd42")
 
     # fit transfermap
@@ -94,7 +94,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
 #   TT = np.hstack((S[:, 0:4], S[:, [6]]))
 
-#   np.savetxt('transfer_map.txt', np.vstack((T, TT)))
+#   np.savetxt('results/transfer_map.txt', np.vstack((T, TT)))
 
 #   y_fit = T @ x_iso.T
 
@@ -118,7 +118,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     # plot
 
-    os.makedirs('tm_plots_kl', exist_ok=True)
+    os.makedirs('results/tm_plots_kl', exist_ok=True)
 
     # TODO: plot _kL value on x axis
 
@@ -136,5 +136,5 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
             #ax.plot(x_iso[I, ix], y_track[iy, I], '-', label='track')
         legend = ax.legend(loc='upper center', fancybox=True,
                            bbox_to_anchor=(-0.1, -0.2), shadow=True, ncol=4)
-        fig.savefig(f'tm_plots/{y_ax}.png', bbox_inches='tight')
+        fig.savefig(f'results/tm_plots/{y_ax}.png', bbox_inches='tight')
         plt.clf()
