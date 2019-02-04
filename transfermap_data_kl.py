@@ -10,7 +10,7 @@ from orm_util import Analysis
 
 record_files = (
     sys.argv[1:] or
-    './2019-01-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+    './data/2019-01-20_quadscan/M8-E108-F1-I9-G1/0-*/*.yml')
 
 
 def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):

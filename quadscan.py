@@ -47,7 +47,7 @@ def read_file(filename):
 
 
 def main():
-    filenames = glob.glob('2019-01-20_quadscan/*/*/*_X.yml')
+    filenames = glob.glob('data/2019-01-20_quadscan/*/*/*_X.yml')
     raw_data = [
         yaml.safe_load(read_file(filename))
         for filename in filenames
