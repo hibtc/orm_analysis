@@ -6,6 +6,8 @@ import yaml
 import numpy as np
 import matplotlib.pyplot as plt
 
+from cpymad.madx import Madx
+
 
 def mean_values(data):
     """
@@ -62,21 +64,58 @@ def main():
         for filename in filenames
     ]
 
-    means = [mean_values(data) for data in raw_data]
-    errors = [stddevs(data) for data in raw_data]
+    m = Madx(stdout=False)
+    m.verbose()
+    m.call('../hit_models/hht3/sequence.madx', chdir=True)
+    m.command.beam()
+    m.use('hht3')
+    #m.call('../hit_models/hht3/strengths0.madx', chdir=True)
 
-    kl_values = [
-        np.array([
+    for data in raw_data:
+
+        mean = mean_values(data)
+        err = stddevs(data)
+        kl = np.array([
             sum(optics.values())
             for optics, group in itertools.groupby(
                     data['records'], key=lambda r: r['optics'])
         ])
-        for data in raw_data
-    ]
 
-    for kl, mean, err in zip(kl_values, means, errors):
-        plt.errorbar(kl, mean[:, 0, 0], err[:, 0, 0])
-        plt.show()
+        mon = data['monitors'][0]
+        knob, = data['optics'][0].keys()
+        quad = [elem.name for elem in m.sequence.hht3.expanded_elements
+                if elem.base_name == 'quadrupole'
+                and knob in m.expr_vars(elem.defs.k1)][0]
+
+        m.globals.update(data['base_optics'])
+
+        for i, x in enumerate('xy'):
+            #plt.subplot(2, 1, i+1)
+            plt.title(f"{knob} $\mapsto$ {mon} | {x}")
+            plt.ylabel("x/y [m]")
+            plt.xlabel(f"{knob} [$m^{{-1}}$]")
+
+            plt.errorbar(kl, mean[:, 0, i], err[:, 0, i], label=x)
+
+            for pos in np.linspace(-0.002, 0.002, 5):
+                modelled = np.array([
+                    track(m, optics, range=f'{quad}/{mon}', **{x: pos})[i]
+                    for optics, group in itertools.groupby(
+                            data['records'], key=lambda r: r['optics'])
+                ])
+                i0 = np.argmin(kl)
+                modelled += mean[i0, 0, i] - modelled[i0]
+
+                plt.plot(kl, modelled, label=f'${x}_0$={pos}')
+
+            plt.legend()
+            plt.show()
+
+
+def track(madx, optics, **kwargs):
+    madx.globals.update(optics)
+    tw = madx.twiss(betx=1, bety=1, **kwargs)
+    return [tw.x[-1], tw.y[-1]]
 
 
 if __name__ == '__main__':
