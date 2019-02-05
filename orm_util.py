@@ -19,7 +19,7 @@ class OrbitResponse:
         self.steerers = steerers
         self.records = records
         self.strengths = strengths
-        self.orm = np.dstack([
+        self.orbits = np.dstack([
             np.vstack([
                 orbit
                 for monitor in monitors
@@ -82,7 +82,7 @@ def load_record_file(filename):
 
 def fit_init_orbit(model, measured, fit_monitors):
     (twiss_init, chisq, singular), curve = fit_particle_readouts(model, [
-        Readout(monitor, *measured.orm[index, :, 0])
+        Readout(monitor, *measured.orbits[index, :, 0])
         for monitor in fit_monitors
         for index in [measured.monitors.index(monitor.lower())]
     ])
@@ -113,7 +113,7 @@ class Analysis:
         if strengths is None:
             strengths = self.measured.strengths
         self.model.update_globals(strengths.items())
-        self.model_orm = self.get_orbit_response()
+        self.model_orbits = self.get_orbit_response()
         sel = self.get_selected_monitors(self.monitors)
         self.info(sel)
 
@@ -121,14 +121,14 @@ class Analysis:
         if sel is None:
             sel = slice(None)
         measured = self.measured
-        model_orm = self.model_orm
+        model_orbits = self.model_orbits
         stddev = measured.stddev
         print("red χ² =", reduced_chisq(
-            ((measured.orm - model_orm) / stddev)[sel], ddof))
+            ((measured.orbits - model_orbits) / stddev)[sel], ddof))
         print("    |x =", reduced_chisq(
-            ((measured.orm - model_orm) / stddev)[sel][:, 0, :], ddof))
+            ((measured.orbits - model_orbits) / stddev)[sel][:, 0, :], ddof))
         print("    |y =", reduced_chisq(
-            ((measured.orm - model_orm) / stddev)[sel][:, 1, :], ddof))
+            ((measured.orbits - model_orbits) / stddev)[sel][:, 1, :], ddof))
 
     def apply_errors(self, errors, values):
         self.errors[:0] = errors
@@ -159,7 +159,7 @@ class Analysis:
             select = self.monitors
         print("plotting monitors: {}".format(" ".join(select)))
         make_monitor_plots(
-            select, self.model, self.measured, self.model_orm,
+            select, self.model, self.measured, self.model_orbits,
             save_to=save_to, base_orm=base_orm)
 
     def plot_steerers(self, select=None, save_to=None, base_orm=None):
@@ -167,7 +167,7 @@ class Analysis:
             select = self.steerers
         print("plotting steerers: {}".format(" ".join(select)))
         make_steerer_plots(
-            select, self.model, self.measured, self.model_orm,
+            select, self.model, self.measured, self.model_orbits,
             save_to=save_to, base_orm=base_orm)
 
     def plot_orbit(self, save_to=None, base_orbit=None):
@@ -195,7 +195,7 @@ class Analysis:
         print("TWISS INIT")
         twiss_args = fit_init_orbit(self.model, self.measured, monitors)
         self.model.update_twiss_args(twiss_args)
-        self.model_orm = self.get_orbit_response()
+        self.model_orbits = self.get_orbit_response()
         return twiss_args
 
     def fit(self, errors, monitors, delta=1e-4,
@@ -236,10 +236,10 @@ class Analysis:
         def objective(values):
             try:
                 print(".", end='', flush=True)
-                self.model_orm = self.get_orbit_response(errors, values)
+                self.model_orbits = self.get_orbit_response(errors, values)
             except TwissFailed:
                 return np.array([1e8])
-            obj = ((self.model_orm - measured.orm) / stddev)[sel][:, dims, :]
+            obj = ((self.model_orbits - measured.orbits) / stddev)[sel][:, dims, :]
             if fourier:
                 obj = np.fft.rfft(obj, axis=0)
                 obj = np.array([
@@ -297,13 +297,13 @@ def get_orbit(model, errors, values):
 
 
 def make_monitor_plots(
-        monitor_subset, model, measured, model_orm, comment="Response",
+        monitor_subset, model, measured, model_orbits, comment="Response",
         save_to=None, base_orm=None):
     for index, monitor in enumerate(measured.monitors):
         if monitor in monitor_subset:
             plot_monitor_response(
                 plt.figure(1), monitor,
-                model, measured, base_orm, model_orm, comment)
+                model, measured, base_orm, model_orbits, comment)
             if save_to is None:
                 plt.show()
             else:
@@ -312,13 +312,13 @@ def make_monitor_plots(
 
 
 def make_steerer_plots(
-        steerer_subset, model, measured, model_orm, comment="Response",
+        steerer_subset, model, measured, model_orbits, comment="Response",
         save_to=None, base_orm=None):
     for index, steerer in enumerate(measured.steerers):
         if steerer in steerer_subset:
             plot_steerer_response(
                 plt.figure(1), steerer,
-                model, measured, base_orm, model_orm, comment)
+                model, measured, base_orm, model_orbits, comment)
             if save_to is None:
                 plt.show()
             else:
@@ -327,13 +327,13 @@ def make_steerer_plots(
 
 
 def plot_monitor_response(
-        fig, monitor, model, measured, base_orm, model_orm, comment):
+        fig, monitor, model, measured, base_orm, model_orbits, comment):
     xpos = [model.elements[elem].position for elem in measured.steerers]
     i = measured.monitors.index(monitor)
     lines = []
 
-    orm = response_matrix(measured.orm)
-    model_orm = response_matrix(model_orm)
+    orbits = response_matrix(measured.orbits)
+    model_orbits = response_matrix(model_orbits)
     base_orm = response_matrix(base_orm)
     stddev = measured.stddev
     if stddev is not None:
@@ -350,13 +350,13 @@ def plot_monitor_response(
 
         axes.errorbar(
             xpos,
-            orm[i, j, :].flatten(),
+            orbits[i, j, :].flatten(),
             stddev[i, j, :].flatten(),
             label=ax + " measured")
 
         lines.append(axes.plot(
             xpos,
-            model_orm[i, j, :].flatten(),
+            model_orbits[i, j, :].flatten(),
             label=ax + " model"))
 
         if base_orm is not None:
@@ -372,13 +372,13 @@ def plot_monitor_response(
 
 
 def plot_steerer_response(
-        fig, steerer, model, measured, base_orm, model_orm, comment):
+        fig, steerer, model, measured, base_orm, model_orbits, comment):
     xpos = [model.elements[elem].position for elem in measured.monitors]
     i = measured.steerers.index(steerer)
     lines = []
 
-    orm = response_matrix(measured.orm)
-    model_orm = response_matrix(model_orm)
+    orbits = response_matrix(measured.orbits)
+    model_orbits = response_matrix(model_orbits)
     base_orm = response_matrix(base_orm)
     stddev = measured.stddev
     if stddev is not None:
@@ -395,13 +395,13 @@ def plot_steerer_response(
 
         axes.errorbar(
             xpos,
-            orm[:, j, i].flatten(),
+            orbits[:, j, i].flatten(),
             stddev[:, j, i].flatten(),
             label=ax + " measured")
 
         lines.append(axes.plot(
             xpos,
-            model_orm[:, j, i].flatten(),
+            model_orbits[:, j, i].flatten(),
             label=ax + " model"))
 
         if base_orm is not None:
@@ -423,7 +423,7 @@ def response_matrix(orbits):
 def plot_orbit(fig, model, i, twiss, measured, base_orbit):
 
     xpos = [model.elements[elem].position for elem in measured.monitors]
-    orbit = measured.orm[:, :, i]
+    orbit = measured.orbits[:, :, i]
     error = measured.stddev[:, :, i]
 
     for j, ax in enumerate("xy"):

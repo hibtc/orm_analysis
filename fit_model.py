@@ -21,7 +21,7 @@ def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
     # TODO: in the more general case, we would also need to set the strengths
     # corresponding to i_knob
     return fit_particle_readouts(model, [
-        Readout(monitor, *measured.orm[index, :, i_knob])
+        Readout(monitor, *measured.orbits[index, :, i_knob])
         for monitor in from_monitors
         for index in [measured.monitors.index(monitor.lower())]
     ], to=to)[0][0]
@@ -58,7 +58,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     ana.model.reverse()
     ana.model.update_twiss_args(reverse_init_orbits[None])
-    ana.measured.orm[:, 0, :] *= -1
+    ana.measured.orbits[:, 0, :] *= -1
     ana.measured.stddev[:, :, :] = 1e-4
 
     ana.init()

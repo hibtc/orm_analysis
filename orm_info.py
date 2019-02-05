@@ -35,7 +35,7 @@ with Analysis.app(model, record_files) as ana:
 
     ana.init()
     #ana.backtrack(['h1dg1g', 'h1dg2g', 'h2dg2g', 'h3dg3g', 'b3dg2g', 'b3dg3g'])
-    base_orm = ana.model_orm
+    base_orm = ana.model_orbits
 
     for filename in opts['--errors']:
         import_errors(ana.model, yaml.load_file(filename))

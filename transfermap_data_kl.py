@@ -17,7 +17,7 @@ def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
     # TODO: in the more general case, we would also need to set the strengths
     # corresponding to i_knob
     return fit_particle_readouts(model, [
-        Readout(monitor, *measured.orm[index, :, i_knob])
+        Readout(monitor, *measured.orbits[index, :, i_knob])
         for monitor in from_monitors
         for index in [measured.monitors.index(monitor.lower())]
     ], to=to)[0][0]
@@ -56,7 +56,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     ])
 
     y_obs = np.array([
-        ana.measured.orm[obs_idx, :, i]
+        ana.measured.orbits[obs_idx, :, i]
         for i, knob in enumerate([None] + ana.knobs)
         #if knob is None or knob.lower() not in exclude_knobs
     ])
