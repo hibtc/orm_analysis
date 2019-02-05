@@ -91,8 +91,8 @@ def main():
 
         for i, x in enumerate('xy'):
             #plt.subplot(2, 1, i+1)
-            plt.title(f"{knob} $\mapsto$ {mon} | {x}")
-            plt.ylabel("x/y [m]")
+            plt.title(f"pos{x}_{mon}({knob})")
+            plt.ylabel("{x} [m]")
             plt.xlabel(f"{knob} [$m^{{-1}}$]")
 
             plt.errorbar(kl, mean[:, 0, i], err[:, 0, i], label=x)
