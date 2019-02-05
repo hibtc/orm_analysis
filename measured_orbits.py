@@ -40,64 +40,55 @@ def main(args=None):
 
     with Analysis.app(model_file, record_files) as ana:
         elements = ana.model.elements
-        records = ana.measured.records
         strengths = ana.measured.strengths
-        orbits = {}
-        for (monitor, knob), (strength, orbit, variance) in records.items():
-            orbits.setdefault(knob, {}) \
-                  .setdefault(strength, {})[monitor] = (orbit, variance ** 0.5)
+        orbits = ana.measured.orbits
+        errors = ana.measured.stddev
+        base_orbit = orbits[:, :, 0]
+        base_error = errors[:, :, 0]
+        counter = {}
 
-        nan = np.ones((2, 2)) * np.nan
-        base_orbit = np.array([
-            list(orbits[None][None].get(monitor, nan))
-            for monitor in ana.monitors
-        ])
+        for i, optic in enumerate(ana.optics):
+            orbit = np.dstack([
+                orbits[:, :, i],
+                errors[:, :, i],
+            ])
+            names = ('name', 's/m', 'x/mm', 'x_err/mm', 'y/mm', 'y_err/mm')
+            align = 'lrrrrr'
+            formats = [''] + 5 * ['9.5f']
 
-        for i, knob in enumerate([None] + ana.knobs):
-            by_strength = orbits[knob]
-            deltas = sorted(by_strength)
-            for j, strength in enumerate(deltas):
-                by_monitor = by_strength[strength]
-                names = ('name', 's/m', 'x/mm', 'x_err/mm', 'y/mm', 'y_err/mm')
-                align = 'lrrrrr'
-                formats = [''] + 5 * ['9.5f']
-                orbit_table = np.array([
-                    list(by_monitor.get(monitor, nan))
-                    for monitor in ana.monitors
-                ])
+            text = format_table(names, align, formats, [
+                (monitor, elements[monitor].position, *values.flat)
+                for monitor, values in zip(ana.monitors, orbit * 1e3)
+            ])
+            if optic:
+                knob = next(iter(optic))[0]
+                count = counter.setdefault(knob, 0)
+                counter[knob] += 1
+                label = f'{knob}-{count}'
+            else:
+                label = 'base'
+            basename = f'{prefix}{i}_{label}'
+            with open(f'{basename}.orbit', 'wt') as f:
+                f.write(text)
+
+            str_data = format_strengths(dict(optic or strengths))
+            with open(f'{basename}.str', 'wt') as f:
+                f.write(str_data)
+
+            if optic:
+                response = np.dstack((
+                    (orbit[:, :, 0] - base_orbit),
+                    (orbit[:, :, 1] ** 2 + base_error ** 2)
+                    ** 0.5,
+                ))
 
                 text = format_table(names, align, formats, [
-                    (monitor, elements[monitor].position, *values.T.flat)
-                    for monitor, values in zip(ana.monitors, orbit_table * 1e3)
+                    (monitor, elements[monitor].position, *values.flat)
+                    for monitor, values in zip(
+                            ana.monitors, response * 1e3)
                 ])
-                basename = (f'{prefix}{i}_base' if knob is None else
-                            f'{prefix}{i}_{knob}-{j}')
-                with open(f'{basename}.orbit', 'wt') as f:
+                with open(f'{basename}.delta', 'wt') as f:
                     f.write(text)
-
-                str_data = format_strengths(
-                    strengths if knob is None else {
-                        knob: strength,
-                        knob + '__orig': strengths[knob],
-                        knob + '__delta': strength - strengths[knob],
-                    })
-                with open(f'{basename}.str', 'wt') as f:
-                    f.write(str_data)
-
-                if knob is not None:
-                    response = np.dstack((
-                        (orbit_table[:, 0, :] - base_orbit[:, 0, :]),
-                        (orbit_table[:, 1, :] ** 2 + base_orbit[:, 1, :] ** 2)
-                        ** 0.5,
-                    ))
-
-                    text = format_table(names, align, formats, [
-                        (monitor, elements[monitor].position, *values.flat)
-                        for monitor, values in zip(
-                                ana.monitors, response * 1e3)
-                    ])
-                    with open(f'{basename}.delta', 'wt') as f:
-                        f.write(text)
 
 
 if __name__ == '__main__':

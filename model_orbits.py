@@ -22,20 +22,16 @@ from shutil import copyfile
 import numpy as np
 from docopt import docopt
 
-from madgui.model.errors import parse_error, apply_errors, Param
+from madgui.model.errors import parse_error
 import madgui.util.yaml as yaml
 
-from orm_util import Analysis
+from orm_util import Analysis, get_orbit as _get_orbit
 from util import format_table, format_strengths
 
 
-def get_orbit(model, errors, values):
+def get_orbit(model, optic, errors, values):
     """Get x, y vectors, with specified errors."""
-    madx = model.madx
-    madx.command.select(flag='interpolate', clear=True)
-    with apply_errors(model, errors, values):
-        tw_args = model._get_twiss_args(table='orm_tmp')
-        twiss = madx.twiss(**tw_args)
+    twiss = _get_orbit(model, optic, errors, values)
     return np.stack((twiss.x, twiss.y)).T
 
 
@@ -98,24 +94,17 @@ def output_orbits(ana, prefix, errors, values):
         f.write(spec.replace('=', ':'))
 
     model = ana.model
-    strengths = ana.measured.strengths
     monitors = ana.monitors
-    knobs = ana.knobs
     elements = model.elements
-    records = ana.measured.records
-    deltas = {
-        knob: strength - strengths[knob]
-        for (monitor, knob), (strength, orbit, error) in records.items()
-        if knob is not None
-    }
+    optics = ana.optics
 
     sel = [model.elements.index(m) for m in monitors]
-    orbits = np.array([get_orbit(model, errors, values)] + [
-        get_orbit(model, [Param(knob)] + errors, [deltas[knob]] + values)
-        for knob in knobs
+    orbits = np.array([
+        get_orbit(model, optic, errors, values)
+        for optic in optics
     ])[:, sel, :]
 
-    for i, (knob, orbit) in enumerate(zip([None] + knobs, orbits)):
+    for i, (optic, orbit) in enumerate(zip(optics, orbits)):
         names = ('name', 's/m', 'x/mm', 'y/mm')
         align = 'lrrr'
         formats = [''] + 3 * ['9.5f']
@@ -124,12 +113,13 @@ def output_orbits(ana, prefix, errors, values):
             (monitor, elements[monitor].position, *values.flat)
             for monitor, values in zip(monitors, orbit * 1e3)
         ])
-        basename = (f'{prefix}{i}_base' if knob is None else
-                    f'{prefix}{i}_{knob}')
+
+        label = next(iter(optic))[0] if optic else 'base'
+        basename = f'{prefix}{i}_{label}'
         with open(f'{basename}.orbit', 'wt') as f:
             f.write(text)
 
-        if knob is not None:
+        if optic:
             response = orbit - orbits[0]
 
             text = format_table(names, align, formats, [

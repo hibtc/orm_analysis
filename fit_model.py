@@ -1,11 +1,11 @@
 import sys
-from madgui.model.errors import parse_error, apply_errors, Param
+from madgui.model.errors import parse_error
 from madgui.online.orbit import fit_particle_readouts, Readout
 from scipy.optimize import Bounds
 
 from cpymad.types import VAR_TYPE_DIRECT
 
-from orm_util import Analysis
+from orm_util import Analysis, get_orbit
 
 
 def parse_errors(names):
@@ -30,34 +30,22 @@ def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
 with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
-    final_orbits = {
-        knob: extrapolate_orbit(ana.measured, i, ana.model, from_monitors)
-        for i, knob in enumerate([None] + ana.knobs)
-    }
+    final_orbits = [
+        extrapolate_orbit(ana.measured, i, ana.model, from_monitors)
+        for i, optic in enumerate(ana.optics)
+    ]
     reverse_init_orbits = {
-        knob: {'x': -orbit['x'], 'px': orbit['px'],
-               'y': orbit['y'], 'py': -orbit['py']}
-        for knob, orbit in final_orbits.items()
+        optic: {'x': -orbit['x'], 'px': orbit['px'],
+                'y': orbit['y'], 'py': -orbit['py']}
+        for optic, orbit in zip(ana.optics, final_orbits)
     }
 
-    def get_orbit(errs, vals, knob):
-        model = ana.model
-        madx = model.madx
-        madx.command.select(flag='interpolate', clear=True)
-
-        deltas = ana.deltas
-        errors = [Param(knob)] + errs if knob else errs
-        values = [deltas[knob]] + vals if knob else vals
-
-        with apply_errors(model, errors, values):
-            return madx.twiss(
-                table='orm_tmp', sequence='hht3',
-                betx=1, bety=1, **reverse_init_orbits[knob])
-
-    ana._get_orbit = get_orbit
+    ana._get_orbit = lambda optic, errs, vals: get_orbit(
+        optic, errs, vals, betx=1, bety=1,
+        **reverse_init_orbits[optic])
 
     ana.model.reverse()
-    ana.model.update_twiss_args(reverse_init_orbits[None])
+    ana.model.update_twiss_args(reverse_init_orbits[()])
     ana.measured.orbits[:, 0, :] *= -1
     ana.measured.stddev[:, :, :] = 1e-4
 

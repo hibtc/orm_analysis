@@ -13,11 +13,11 @@ record_files = (
     './data/2019-01-20_quadscan/M8-E108-F1-I9-G1/0-*/*.yml')
 
 
-def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
+def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
     # TODO: in the more general case, we would also need to set the strengths
-    # corresponding to i_knob
+    # corresponding to i_optic
     return fit_particle_readouts(model, [
-        Readout(monitor, *measured.orbits[index, :, i_knob])
+        Readout(monitor, *measured.orbits[index, :, i_optic])
         for monitor in from_monitors
         for index in [measured.monitors.index(monitor.lower())]
     ], to=to)[0][0]
@@ -32,32 +32,26 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     # estimate particle coordinates at ISO center:
     from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
-    final_orbits = {
-        knob: extrapolate_orbit(ana.measured, i, ana.model, from_monitors)
-        for i, knob in enumerate([None] + ana.knobs)
-    }
-    reverse_init_orbits = {
-        knob: (-orbit['x'], orbit['px'],
-               orbit['y'], -orbit['py'])
-        for knob, orbit in final_orbits.items()
-    }
+    final_orbits = [
+        extrapolate_orbit(ana.measured, i, ana.model, from_monitors)
+        for i, optic in enumerate(ana.optics)
+    ]
+    reverse_init_orbits = [
+        (-orbit['x'], orbit['px'], orbit['y'], -orbit['py'])
+        for orbit in final_orbits
+    ]
 
     ana.model.update_globals(ana.measured.strengths)
     ana.model.reverse()
     ana.model.update_twiss_args(dict(zip(
-        ('x', 'px', 'y', 'py'), reverse_init_orbits[None])))
+        ('x', 'px', 'y', 'py'), reverse_init_orbits[0])))
     T_model = ana.model.sectormap('#s', obs_el)
     S = T_model[[0, 2]]
 
-    x_iso = np.array([
-        reverse_init_orbits[knob]
-        for i, knob in enumerate([None] + ana.knobs)
-        #if knob is None or knob.lower() not in exclude_knobs
-    ])
-
+    x_iso = np.array(reverse_init_orbits)
     y_obs = np.array([
         ana.measured.orbits[obs_idx, :, i]
-        for i, knob in enumerate([None] + ana.knobs)
+        for i, _ in enumerate(ana.optics)
         #if knob is None or knob.lower() not in exclude_knobs
     ])
     y_obs[:, 0] *= -1       # -x
@@ -67,15 +61,15 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
         return [tw.x[-1], tw.y[-1]]
 
     y_twiss = np.array([
-        twiss(*reverse_init_orbits[knob])
-        for knob in [None] + ana.knobs
+        twiss(*orbit)
+        for orbit in reverse_init_orbits
         #if knob is None or knob.lower() not in exclude_knobs
     ]).T
 
+    base_kl = ana.strengths['kl_g3qd42']
     kl = np.column_vector([
-        ana.measured.strengths[knob]['kl_g3qd42']
-        + ana.deltas.get('kl_g3qd42', 0)
-        for knob in [None] + ana.knobs
+        optic.get('kl_g3qd42', base_kl)
+        for optic in ana.optics
     ])
 
     np.savetxt(
