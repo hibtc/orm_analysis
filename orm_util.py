@@ -206,7 +206,7 @@ class Analysis:
             if save_to is None:
                 plt.show()
             else:
-                knob = next(iter(optics), (None, None))[0]
+                knob = next(iter(optic), (None, None))[0]
                 plt.savefig('{}-orbit-{}-{}.png'.format(save_to, i, knob))
             plt.clf()
 
