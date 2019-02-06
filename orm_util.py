@@ -8,7 +8,7 @@ from cpymad.madx import TwissFailed
 import madgui.util.yaml as yaml
 from madgui.util.fit import reduced_chisq, fit
 from madgui.online.orbit import fit_particle_readouts, Readout
-from madgui.model.errors import Ealign, Efcomp, apply_errors
+from madgui.model.errors import apply_errors
 
 
 class OrbitResponse:
@@ -500,37 +500,3 @@ def plot_orbit(fig, model, i, twiss, measured, base_orbit):
         axes.legend()
 
     fig.suptitle("orbit")
-
-
-ERR_ATTR = {
-    'sbend': ['angle', 'e1', 'e2', 'k0', 'hgap', 'fint'],
-    'quadrupole': ['k1', 'k1s'],
-    'hkicker': ['kick', 'tilt'],
-    'vkicker': ['kick', 'tilt'],
-    'srotation': ['angle'],
-}
-
-ERR_EALIGN = ['dx', 'dy', 'ds', 'dpsi', 'dphi', 'dtheta']
-
-
-# scaling: monitor
-# scaling: kicker
-
-def get_elem_ealign(model, name, attrs=ERR_EALIGN, delta=1e-3):
-    return [
-        Ealign({'range': name}, attr, delta)
-        for attr in attrs
-    ]
-
-
-def get_elem_efcomp(model, name, delta=1e-3):
-    elem = model.elements[name]
-    kwargs = dict(order=None, radius=None)
-    if elem.base_name == 'sbend':
-        return [Efcomp({'range': name}, 'dkn', [delta], **kwargs)]
-    if elem.base_name == 'quadrupole':
-        return [
-            Efcomp({'range': name}, 'dkn', [0, delta], **kwargs),
-            Efcomp({'range': name}, 'dks', [0, delta], **kwargs),
-        ]
-    return []
