@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -286,7 +284,6 @@ class Analysis:
         return result
 
     @classmethod
-    @contextmanager
     def app(cls, model_file, record_files):
         from madgui.core.app import init_app
         from madgui.core.session import Session
@@ -299,13 +296,13 @@ class Analysis:
             record_files = glob(record_files)
 
         config = load_config(isolated=True)
-        with Session(config) as session:
-            session.load_model(
-                model_file,
-                stdout=False)
-            model = session.model()
-            measured = OrbitResponse.load(model, record_files)
-            yield cls(model, measured)
+        session = Session(config)
+        session.load_model(model_file, stdout=False)
+        model = session.model()
+        measured = OrbitResponse.load(model, record_files)
+        analysis = cls(model, measured)
+        analysis.session = session
+        return analysis
 
 
 def get_orbit(model, optic, errors, values, **twiss_args):

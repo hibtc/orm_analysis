@@ -38,50 +38,50 @@ def main(args=None):
 
     os.makedirs(prefix, exist_ok=True)
 
-    with Analysis.app(model_file, record_files) as ana:
-        elements = ana.model.elements
-        strengths = ana.measured.strengths
-        orbits = ana.measured.orbits
-        errors = ana.measured.stddev
-        base_orbit = orbits[:, :, 0]
-        base_error = errors[:, :, 0]
+    ana = Analysis.app(model_file, record_files)
+    elements = ana.model.elements
+    strengths = ana.measured.strengths
+    orbits = ana.measured.orbits
+    errors = ana.measured.stddev
+    base_orbit = orbits[:, :, 0]
+    base_error = errors[:, :, 0]
 
-        for i, optic in enumerate(ana.optics):
-            orbit = np.dstack([
-                orbits[:, :, i],
-                errors[:, :, i],
-            ])
-            names = ('name', 's/m', 'x/mm', 'x_err/mm', 'y/mm', 'y_err/mm')
-            align = 'lrrrrr'
-            formats = [''] + 5 * ['9.5f']
+    for i, optic in enumerate(ana.optics):
+        orbit = np.dstack([
+            orbits[:, :, i],
+            errors[:, :, i],
+        ])
+        names = ('name', 's/m', 'x/mm', 'x_err/mm', 'y/mm', 'y_err/mm')
+        align = 'lrrrrr'
+        formats = [''] + 5 * ['9.5f']
+
+        text = format_table(names, align, formats, [
+            (monitor, elements[monitor].position, *values.flat)
+            for monitor, values in zip(ana.monitors, orbit * 1e3)
+        ])
+        label = next(iter(optic))[0] if optic else 'base'
+        basename = f'{prefix}{i}_{label}'
+        with open(f'{basename}.orbit', 'wt') as f:
+            f.write(text)
+
+        str_data = format_strengths(dict(optic or strengths))
+        with open(f'{basename}.str', 'wt') as f:
+            f.write(str_data)
+
+        if optic:
+            response = np.dstack((
+                (orbit[:, :, 0] - base_orbit),
+                (orbit[:, :, 1] ** 2 + base_error ** 2)
+                ** 0.5,
+            ))
 
             text = format_table(names, align, formats, [
                 (monitor, elements[monitor].position, *values.flat)
-                for monitor, values in zip(ana.monitors, orbit * 1e3)
+                for monitor, values in zip(
+                        ana.monitors, response * 1e3)
             ])
-            label = next(iter(optic))[0] if optic else 'base'
-            basename = f'{prefix}{i}_{label}'
-            with open(f'{basename}.orbit', 'wt') as f:
+            with open(f'{basename}.delta', 'wt') as f:
                 f.write(text)
-
-            str_data = format_strengths(dict(optic or strengths))
-            with open(f'{basename}.str', 'wt') as f:
-                f.write(str_data)
-
-            if optic:
-                response = np.dstack((
-                    (orbit[:, :, 0] - base_orbit),
-                    (orbit[:, :, 1] ** 2 + base_error ** 2)
-                    ** 0.5,
-                ))
-
-                text = format_table(names, align, formats, [
-                    (monitor, elements[monitor].position, *values.flat)
-                    for monitor, values in zip(
-                            ana.monitors, response * 1e3)
-                ])
-                with open(f'{basename}.delta', 'wt') as f:
-                    f.write(text)
 
 
 if __name__ == '__main__':

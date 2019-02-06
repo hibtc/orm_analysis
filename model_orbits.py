@@ -72,18 +72,18 @@ def main(args=None):
     if opts['--error']:
         copyfile(opts['--error'], f'{prefix}spec_error.yml')
 
-    with Analysis.app(model_file, record_files) as ana:
-        model = ana.model
-        strengths = ana.measured.strengths
+    ana = Analysis.app(model_file, record_files)
+    model = ana.model
+    strengths = ana.measured.strengths
 
-        model.madx.eoption(add=True)
-        model.update_globals(strengths.items())
+    model.madx.eoption(add=True)
+    model.update_globals(strengths.items())
 
-        for i, spec in enumerate(specs):
-            errors = list(map(parse_error, spec.keys())) + g_errors
-            values = list(spec.values()) + g_values
-            errname = '_' + repr(errors[0]) if len(spec) == 1 else ''
-            output_orbits(ana, f'{prefix}/model_{i}{errname}/', errors, values)
+    for i, spec in enumerate(specs):
+        errors = list(map(parse_error, spec.keys())) + g_errors
+        values = list(spec.values()) + g_values
+        errname = '_' + repr(errors[0]) if len(spec) == 1 else ''
+        output_orbits(ana, f'{prefix}/model_{i}{errname}/', errors, values)
 
 
 def output_orbits(ana, prefix, errors, values):
