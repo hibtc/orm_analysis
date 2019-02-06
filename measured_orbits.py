@@ -45,7 +45,6 @@ def main(args=None):
         errors = ana.measured.stddev
         base_orbit = orbits[:, :, 0]
         base_error = errors[:, :, 0]
-        counter = {}
 
         for i, optic in enumerate(ana.optics):
             orbit = np.dstack([
@@ -60,13 +59,7 @@ def main(args=None):
                 (monitor, elements[monitor].position, *values.flat)
                 for monitor, values in zip(ana.monitors, orbit * 1e3)
             ])
-            if optic:
-                knob = next(iter(optic))[0]
-                count = counter.setdefault(knob, 0)
-                counter[knob] += 1
-                label = f'{knob}-{count}'
-            else:
-                label = 'base'
+            label = next(iter(optic))[0] if optic else 'base'
             basename = f'{prefix}{i}_{label}'
             with open(f'{basename}.orbit', 'wt') as f:
                 f.write(text)
