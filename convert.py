@@ -11,46 +11,20 @@ by the dialog at:
 
 import sys
 import os
-import itertools
 
 import yaml
+
+from orm_util import _convert_orm_export
 
 
 def convert(filename):
     with open(filename) as f:
         data = yaml.safe_load(f)
-
-    monitors = data['monitors']
-    knobs = {
-        knob
-        for optic in data['optics']
-        for knob in optic
-    }
-
-    converted_data = yaml.safe_dump({
-        'model': data['base_optics'],
-        'monitors': monitors,
-        'knobs': list(knobs),
-        'sequence': 'hht3',
-        'records': [
-            {
-                'optics': optic,
-                'shots': [
-                    {monitor: [r['posx'], r['posy'], r['envx'], r['envy']]
-                     for monitor in monitors
-                     for r in [shot['readout'][monitor]]}
-                    for shot in group
-                ],
-            }
-            for optic, group in itertools.groupby(
-                data['records'], key=lambda r: r['optics'])
-        ]
-    })
-
-
     os.makedirs('conv/' + os.path.split(filename)[0], exist_ok=True)
+    converted = _convert_orm_export(data)
+    text = yaml.safe_dump(converted)
     with open(f'conv/{filename}', 'wt') as f:
-        f.write(converted_data)
+        f.write(text)
 
 
 if __name__ == '__main__':

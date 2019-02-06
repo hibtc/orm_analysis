@@ -1,3 +1,5 @@
+import itertools
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -95,9 +97,16 @@ def sorted_optics(model, optics):
 
 
 def load_record_file(filename):
-    """Load a YAML file in the format produced by the madgui dialog at
-    Online control -> ORM measurement."""
+    """
+    Load a YAML file in the format produced by one of the madgui dialogs:
+
+        - Online control -> ORM measurement
+        - Online control -> Beam diagnostic -> Offsets -> Calibrate
+    """
     data = yaml.load_file(filename)
+    if 'base_optics' in data:
+        # exported by `Online -> Beam diagnostic -> Offsets -> Calibrate`…
+        data = _convert_orm_export(data)
     strengths = data['model']
     records = {
         (monitor, tuple(record['optics'].items())): [
@@ -108,6 +117,34 @@ def load_record_file(filename):
         for monitor in data['monitors']
     }
     return strengths, records
+
+
+def _convert_orm_export(data):
+    """
+    Convert data as exported by the madgui dialogs at:
+
+    from:       Online control -> Beam diagnostic -> Offsets -> Calibrate
+    to:         Online control -> ORM measurement
+    """
+    return {
+        'model': data['base_optics'],
+        'monitors': data['monitors'],
+        'knobs': {knob for optic in data['optics'] for knob in optic},
+        'sequence': 'hht3',
+        'records': [
+            {
+                'optics': optic,
+                'shots': [
+                    {monitor: [r['posx'], r['posy'], r['envx'], r['envy']]
+                     for monitor in data['monitors']
+                     for r in [shot['readout'][monitor]]}
+                    for shot in group
+                ],
+            }
+            for optic, group in itertools.groupby(
+                    data['records'], key=lambda r: r['optics'])
+        ],
+    }
 
 
 def fit_init_orbit(model, measured, fit_monitors):
