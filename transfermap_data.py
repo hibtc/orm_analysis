@@ -24,8 +24,6 @@ def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
 
 with Analysis.app('../hit_models/hht3', record_files) as ana:
 
-    exclude_knobs = ['ay_g3mw1', 'ax_g3mw2', 'dax_g3mu3']
-
     obs_el = 'g3dg5g'
     obs_idx = ana.monitors.index(obs_el)
 
@@ -51,7 +49,6 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     y_obs = np.array([
         ana.measured.orbits[obs_idx, :, i]
         for i, _ in enumerate(ana.optics)
-        #if knob is None or knob.lower() not in exclude_knobs
     ])
     y_obs[:, 0] *= -1       # -x
 
@@ -62,7 +59,6 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     y_twiss = np.array([
         twiss(*orbit)
         for orbit in reverse_init_orbits
-        #if knob is None or knob.lower() not in exclude_knobs
     ]).T
 
     np.savetxt(
@@ -112,7 +108,6 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     #y_track = np.array([
     #    track(*orbit)
     #    for orbit in reverse_init_orbits
-    #    if knob is None or knob.lower() not in exclude_knobs
     #]).T
 
     y_model = y_twiss
