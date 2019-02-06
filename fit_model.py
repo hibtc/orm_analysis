@@ -41,7 +41,7 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
     }
 
     ana._get_orbit = lambda optic, errs, vals: get_orbit(
-        optic, errs, vals, betx=1, bety=1,
+        ana.model, optic, errs, vals, betx=1, bety=1,
         **reverse_init_orbits[optic])
 
     ana.model.reverse()
