@@ -87,29 +87,6 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
 
     # model
 
-    #madx = ana.model.madx
-    #madx.input('''
-    #    select, flag=makethin, class=sbend, slice=50, thick=false;
-    #    makethin, sequence=hht3, style=teapot, makedipedge=true;
-    #    use, sequence=hht3;
-    #''')
-
-    #def track(x, px, y, py):
-    #    madx.input(f'''
-    #        track, onepass=true, onetable=true;
-    #        start, x={x}, y={y}, px={px}, py={py};
-    #        observe, place={obs_el};
-    #        run, turns=1;
-    #        endtrack;
-    #    ''')
-    #    tab = madx.table.trackone
-    #    return [tab.x[1], tab.y[1]]
-
-    #y_track = np.array([
-    #    track(*orbit)
-    #    for orbit in reverse_init_orbits
-    #]).T
-
     y_model = y_twiss
 
     resid_e = y_fit - y_obs.T
@@ -136,8 +113,6 @@ with Analysis.app('../hit_models/hht3', record_files) as ana:
             ax.plot(x_iso[I, ix], y_model[iy, I], label=f'model')
             ax.plot(x_iso[I, ix], y_fit[iy, I], label='fit')
             ax.plot(x_iso[I, ix], y_model[iy, I] + patch[iy], label=f'patch')
-            #ax.plot(x_iso[I, ix], y_twiss[iy, I], 'o-', label='twiss')
-            #ax.plot(x_iso[I, ix], y_track[iy, I], '-', label='track')
         legend = ax.legend(loc='upper center', fancybox=True,
                            bbox_to_anchor=(-0.1, -0.2), shadow=True, ncol=4)
         fig.savefig(f'results/tm_plots/{y_ax}.png', bbox_inches='tight')
