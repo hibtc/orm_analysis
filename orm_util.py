@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -8,73 +6,105 @@ from cpymad.madx import TwissFailed
 import madgui.util.yaml as yaml
 from madgui.util.fit import reduced_chisq, fit
 from madgui.online.orbit import fit_particle_readouts, Readout
-from madgui.model.errors import Ealign, Efcomp, apply_errors, Param
+from madgui.model.errors import Ealign, Efcomp, apply_errors
 
 
 class OrbitResponse:
 
-    def __init__(self, strengths, records, monitors, knobs, steerers):
+    def __init__(self, strengths, records, steerers, monitors, optics):
         self.monitors = monitors
-        self.knobs = knobs
         self.steerers = steerers
-        self.records = records
+        self.optics = optics
         self.strengths = strengths
-        self.orm = np.dstack([
+        orbits = {
+            key: np.mean(shots, axis=0)
+            for key, shots in records.items()
+        }
+        errors = {
+            key: np.var(shots, axis=0, ddof=1)
+            for key, shots in records.items()
+        }
+        counts = {
+            key: len(shots)
+            for key, shots in records.items()
+        }
+
+        nans = [np.nan, np.nan]
+        # TODO: we should use the "base optic" before the "steerer"
+        self.orbits = np.dstack([
             np.vstack([
-                orbit
+                orbits.get((monitor, optic), nans)
                 for monitor in monitors
-                for strength, orbit, error in [
-                        records.get((monitor, knob)) or records[monitor, None]]
             ])
-            for knob in [None] + knobs
+            for optic in optics
         ])
-        self.stddev = np.dstack([
+        self.variance = np.dstack([
             np.vstack([
-                np.sqrt(error)
+                errors.get((monitor, optic), nans)
                 for monitor in monitors
-                for strength, orbit, error in [
-                        records.get((monitor, knob)) or records[monitor, None]]
             ])
-            for knob in [None] + knobs
+            for optic in optics
         ])
+        self.stddev = self.variance ** 0.5 / np.dstack([
+            np.vstack([
+                counts.get((monitor, optic), 1) ** 0.5
+                for monitor in monitors
+            ])
+            for optic in optics
+        ])
+        self.counts = counts
 
     @classmethod
     def load(cls, model, filenames):
         strengths = {}
         records = {}
         for s, r in map(load_record_file, filenames):
+            # TODO: should handle different base_optics in different files…
             strengths.update(s)
-            records.update(r)
+            for k, v in r.items():
+                records.setdefault(k, []).extend(v)
         monitors = {mon.lower() for mon, _ in records}
-        knobs = {knob.lower() for _, knob in records if knob}
-        return cls(strengths, records, *sorted_mesh(model, monitors, knobs))
+        optics = {optic for _, optic in records}
+        knob_elems = map_knobs_to_elements(model)
+        steerers = {knob_elems[next(iter(optic))[0]].name
+                    for optic in optics if optic}
+        return cls(strengths, records, steerers,
+                   sorted(monitors, key=model.elements.index),
+                   sorted_optics(model, optics))
 
 
-def sorted_mesh(model, monitors, knobs):
-    elems = model.elements
+def map_knobs_to_elements(model):
+    """Build a dictionary that maps knob name (lowercase) to element."""
     knob_elems = {}
-    for elem in elems:
+    for elem in model.elements:
         for knob in model.get_elem_knobs(elem):
-            knob_elems.setdefault(knob.lower(), []).append(elem.name)
-    monitors = sorted(monitors, key=elems.index)
-    knobs = sorted(knobs, key=lambda k: elems.index(knob_elems[k][0]))
-    steerers = [knob_elems[k][0] for k in knobs]
-    return monitors, knobs, steerers
+            knob_elems.setdefault(knob.lower(), elem)
+    return knob_elems
+
+
+def sorted_optics(model, optics):
+    """Sort lists of knob/value pairs by element index and knob value."""
+    knob_elems = map_knobs_to_elements(model)
+    elem_index = {knob: elem.index for knob, elem in knob_elems.items()}
+    def item_key(item):
+        knob, value = item
+        return (elem_index.get(knob, -1), knob, value)
+    optics = [tuple(sorted(optic, key=item_key)) for optic in optics]
+    return sorted(optics, key=lambda optic: [
+        item_key(item) for item in optic])
 
 
 def load_record_file(filename):
+    """Load a YAML file in the format produced by the madgui dialog at
+    Online control -> ORM measurement."""
     data = yaml.load_file(filename)
     strengths = data['model']
     records = {
-        (monitor, knob): (s, np.mean([
+        (monitor, tuple(record['optics'].items())): [
             shot[monitor][:2]
             for shot in record['shots']
-        ], axis=0), np.var([
-            shot[monitor][:2]
-            for shot in record['shots']
-        ], axis=0, ddof=1) / len(record['shots']))
+        ]
         for record in data['records']
-        for knob, s in (record['optics'] or {None: None}).items()
         for monitor in data['monitors']
     }
     return strengths, records
@@ -82,7 +112,7 @@ def load_record_file(filename):
 
 def fit_init_orbit(model, measured, fit_monitors):
     (twiss_init, chisq, singular), curve = fit_particle_readouts(model, [
-        Readout(monitor, *measured.orm[index, :, 0])
+        Readout(monitor, *measured.orbits[index, :, 0])
         for monitor in fit_monitors
         for index in [measured.monitors.index(monitor.lower())]
     ])
@@ -96,24 +126,16 @@ class Analysis:
         self.measured = measured
         self.monitors = measured.monitors
         self.steerers = measured.steerers
-        self.knobs = measured.knobs
+        self.optics = measured.optics
         self.errors = []
         self.values = []
-
-        records = measured.records
-        strengths = measured.strengths
-        self.deltas = {
-            knob: strength - strengths[knob]
-            for (monitor, knob), (strength, orbit, error) in records.items()
-            if knob is not None
-        }
 
     def init(self, strengths=None):
         print("INITIAL")
         if strengths is None:
             strengths = self.measured.strengths
         self.model.update_globals(strengths.items())
-        self.model_orm = self.get_orbit_response()
+        self.model_orbits = self.compute_model_orbits()
         sel = self.get_selected_monitors(self.monitors)
         self.info(sel)
 
@@ -121,35 +143,31 @@ class Analysis:
         if sel is None:
             sel = slice(None)
         measured = self.measured
-        model_orm = self.model_orm
+        model_orbits = self.model_orbits
         stddev = measured.stddev
         print("red χ² =", reduced_chisq(
-            ((measured.orm - model_orm) / stddev)[sel], ddof))
+            ((measured.orbits - model_orbits) / stddev)[sel], ddof))
         print("    |x =", reduced_chisq(
-            ((measured.orm - model_orm) / stddev)[sel][:, 0, :], ddof))
+            ((measured.orbits - model_orbits) / stddev)[sel][:, 0, :], ddof))
         print("    |y =", reduced_chisq(
-            ((measured.orm - model_orm) / stddev)[sel][:, 1, :], ddof))
+            ((measured.orbits - model_orbits) / stddev)[sel][:, 1, :], ddof))
 
     def apply_errors(self, errors, values):
         self.errors[:0] = errors
         self.values[:0] = values
 
-    def get_orbit_response(self, errors=(), values=()):
+    def compute_model_orbits(self, errors=(), values=()):
         errs = list(errors) + self.errors
         vals = list(values) + self.values
         idx = [self.model.elements.index(m) for m in self.monitors]
         return np.dstack([
-            self._get_orbit(errs, vals, knob)
+            self._get_orbit(optic, errs, vals)
             .dframe(('x', 'y'))
-            for knob in [None] + self.knobs
+            for optic in self.optics
         ])[idx]
 
-    def _get_orbit(self, errs, vals, knob):
-        deltas = self.deltas
-        return get_orbit(
-            self.model,
-            [Param(knob)] + errs if knob else errs,
-            [deltas[knob]] + vals if knob else vals)
+    def _get_orbit(self, optic, errs, vals):
+        return get_orbit(self.model, optic, errs, vals)
 
     def get_selected_monitors(self, selected):
         return [self.monitors.index(m.lower()) for m in selected]
@@ -159,7 +177,7 @@ class Analysis:
             select = self.monitors
         print("plotting monitors: {}".format(" ".join(select)))
         make_monitor_plots(
-            select, self.model, self.measured, self.model_orm,
+            select, self.model, self.measured, self.model_orbits,
             save_to=save_to, base_orm=base_orm)
 
     def plot_steerers(self, select=None, save_to=None, base_orm=None):
@@ -167,25 +185,26 @@ class Analysis:
             select = self.steerers
         print("plotting steerers: {}".format(" ".join(select)))
         make_steerer_plots(
-            select, self.model, self.measured, self.model_orm,
+            select, self.model, self.measured, self.model_orbits,
             save_to=save_to, base_orm=base_orm)
 
     def plot_orbit(self, save_to=None, base_orbit=None):
 
-        knobs = [None] + self.knobs
+        optics = self.optics
         orbits = [
-            self._get_orbit(self.errors, self.values, knob)
+            self._get_orbit(optic, self.errors, self.values)
             .dframe(('s', 'x', 'y'))
-            for knob in knobs
+            for optic in optics
         ]
 
-        for i, (knob, tw) in enumerate(zip(knobs, orbits)):
+        for i, (optic, tw) in enumerate(zip(optics, orbits)):
             fig = plt.figure(1)
             plot_orbit(fig, self.model, i, tw, self.measured,
                        base_orbit=base_orbit and base_orbit[i])
             if save_to is None:
                 plt.show()
             else:
+                knob = next(iter(optic), (None, None))[0]
                 plt.savefig('{}-orbit-{}-{}.png'.format(save_to, i, knob))
             plt.clf()
 
@@ -195,7 +214,7 @@ class Analysis:
         print("TWISS INIT")
         twiss_args = fit_init_orbit(self.model, self.measured, monitors)
         self.model.update_twiss_args(twiss_args)
-        self.model_orm = self.get_orbit_response()
+        self.model_orbits = self.compute_model_orbits()
         return twiss_args
 
     def fit(self, errors, monitors, delta=1e-4,
@@ -236,10 +255,10 @@ class Analysis:
         def objective(values):
             try:
                 print(".", end='', flush=True)
-                self.model_orm = self.get_orbit_response(errors, values)
+                self.model_orbits = self.compute_model_orbits(errors, values)
             except TwissFailed:
                 return np.array([1e8])
-            obj = ((self.model_orm - measured.orm) / stddev)[sel][:, dims, :]
+            obj = ((self.model_orbits - measured.orbits) / stddev)[sel][:, dims, :]
             if fourier:
                 obj = np.fft.rfft(obj, axis=0)
                 obj = np.array([
@@ -265,7 +284,6 @@ class Analysis:
         return result
 
     @classmethod
-    @contextmanager
     def app(cls, model_file, record_files):
         from madgui.core.app import init_app
         from madgui.core.session import Session
@@ -278,32 +296,34 @@ class Analysis:
             record_files = glob(record_files)
 
         config = load_config(isolated=True)
-        with Session(config) as session:
-            session.load_model(
-                model_file,
-                stdout=False)
-            model = session.model()
-            measured = OrbitResponse.load(model, record_files)
-            yield cls(model, measured)
+        session = Session(config)
+        session.load_model(model_file, stdout=False)
+        model = session.model()
+        measured = OrbitResponse.load(model, record_files)
+        analysis = cls(model, measured)
+        analysis.session = session
+        return analysis
 
 
-def get_orbit(model, errors, values):
+def get_orbit(model, optic, errors, values, **twiss_args):
     """Get x, y vectors, with specified errors."""
+    twiss_args.setdefault('table', 'orm_tmp')
     madx = model.madx
     madx.command.select(flag='interpolate', clear=True)
-    with apply_errors(model, errors, values):
-        tw_args = model._get_twiss_args(table='orm_tmp')
-        return madx.twiss(**tw_args)
+    with model.undo_stack.rollback():
+        model.update_globals(optic)
+        with apply_errors(model, errors, values):
+            return madx.twiss(**model._get_twiss_args(**twiss_args))
 
 
 def make_monitor_plots(
-        monitor_subset, model, measured, model_orm, comment="Response",
+        monitor_subset, model, measured, model_orbits, comment="Response",
         save_to=None, base_orm=None):
     for index, monitor in enumerate(measured.monitors):
         if monitor in monitor_subset:
             plot_monitor_response(
                 plt.figure(1), monitor,
-                model, measured, base_orm, model_orm, comment)
+                model, measured, base_orm, model_orbits, comment)
             if save_to is None:
                 plt.show()
             else:
@@ -312,13 +332,13 @@ def make_monitor_plots(
 
 
 def make_steerer_plots(
-        steerer_subset, model, measured, model_orm, comment="Response",
+        steerer_subset, model, measured, model_orbits, comment="Response",
         save_to=None, base_orm=None):
     for index, steerer in enumerate(measured.steerers):
         if steerer in steerer_subset:
             plot_steerer_response(
                 plt.figure(1), steerer,
-                model, measured, base_orm, model_orm, comment)
+                model, measured, base_orm, model_orbits, comment)
             if save_to is None:
                 plt.show()
             else:
@@ -327,13 +347,13 @@ def make_steerer_plots(
 
 
 def plot_monitor_response(
-        fig, monitor, model, measured, base_orm, model_orm, comment):
+        fig, monitor, model, measured, base_orm, model_orbits, comment):
     xpos = [model.elements[elem].position for elem in measured.steerers]
     i = measured.monitors.index(monitor)
     lines = []
 
-    orm = response_matrix(measured.orm)
-    model_orm = response_matrix(model_orm)
+    orbits = response_matrix(measured.orbits)
+    model_orbits = response_matrix(model_orbits)
     base_orm = response_matrix(base_orm)
     stddev = measured.stddev
     if stddev is not None:
@@ -350,13 +370,13 @@ def plot_monitor_response(
 
         axes.errorbar(
             xpos,
-            orm[i, j, :].flatten(),
+            orbits[i, j, :].flatten(),
             stddev[i, j, :].flatten(),
             label=ax + " measured")
 
         lines.append(axes.plot(
             xpos,
-            model_orm[i, j, :].flatten(),
+            model_orbits[i, j, :].flatten(),
             label=ax + " model"))
 
         if base_orm is not None:
@@ -372,13 +392,13 @@ def plot_monitor_response(
 
 
 def plot_steerer_response(
-        fig, steerer, model, measured, base_orm, model_orm, comment):
+        fig, steerer, model, measured, base_orm, model_orbits, comment):
     xpos = [model.elements[elem].position for elem in measured.monitors]
     i = measured.steerers.index(steerer)
     lines = []
 
-    orm = response_matrix(measured.orm)
-    model_orm = response_matrix(model_orm)
+    orbits = response_matrix(measured.orbits)
+    model_orbits = response_matrix(model_orbits)
     base_orm = response_matrix(base_orm)
     stddev = measured.stddev
     if stddev is not None:
@@ -395,13 +415,13 @@ def plot_steerer_response(
 
         axes.errorbar(
             xpos,
-            orm[:, j, i].flatten(),
+            orbits[:, j, i].flatten(),
             stddev[:, j, i].flatten(),
             label=ax + " measured")
 
         lines.append(axes.plot(
             xpos,
-            model_orm[:, j, i].flatten(),
+            model_orbits[:, j, i].flatten(),
             label=ax + " model"))
 
         if base_orm is not None:
@@ -423,7 +443,7 @@ def response_matrix(orbits):
 def plot_orbit(fig, model, i, twiss, measured, base_orbit):
 
     xpos = [model.elements[elem].position for elem in measured.monitors]
-    orbit = measured.orm[:, :, i]
+    orbit = measured.orbits[:, :, i]
     error = measured.stddev[:, :, i]
 
     for j, ax in enumerate("xy"):
