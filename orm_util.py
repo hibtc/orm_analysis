@@ -8,6 +8,7 @@ import madgui.util.yaml as yaml
 from madgui.util.fit import reduced_chisq, fit
 from madgui.online.orbit import fit_particle_readouts, Readout
 from madgui.model.errors import apply_errors
+from madgui.util.undo import UndoStack
 
 
 class OrbitResponse:
@@ -69,7 +70,8 @@ class OrbitResponse:
         knob_elems = map_knobs_to_elements(model)
         steerers = {knob_elems[next(iter(optic))[0]].name
                     for optic in optics if optic}
-        return cls(strengths, records, steerers,
+        return cls(strengths, records,
+                   sorted(steerers, key=model.elements.index),
                    sorted(monitors, key=model.elements.index),
                    sorted_optics(model, optics))
 
@@ -325,7 +327,7 @@ class Analysis:
 
         config = load_config(isolated=True)
         session = Session(config)
-        session.load_model(model_file, stdout=False)
+        session.load_model(model_file, stdout=False, undo_stack=UndoStack())
         model = session.model()
         measured = OrbitResponse.load(model, record_files)
         analysis = cls(model, measured)
