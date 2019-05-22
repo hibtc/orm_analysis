@@ -81,7 +81,7 @@ os.makedirs('results/tm_plots_kl', exist_ok=True)
 # TODO: plot _kL value on x axis
 
 for iy, y_ax in enumerate('xy'):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8, 8))
     for ix, x_ax in enumerate(('x', 'px', 'y', 'py')):
         ax = fig.add_subplot(2, 2, 1 + ix)
         ax.set_title(f'{y_ax}({x_ax})')

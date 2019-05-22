@@ -104,7 +104,7 @@ print(red_chisq(resid_m, 0.5e-3, 8))
 os.makedirs('results/tm_plots', exist_ok=True)
 
 for iy, y_ax in enumerate('xy'):
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8, 8))
     for ix, x_ax in enumerate(('x', 'px', 'y', 'py')):
         ax = fig.add_subplot(2, 2, 1 + ix)
         ax.set_title(f'{y_ax}({x_ax})')

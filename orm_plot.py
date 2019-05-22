@@ -10,7 +10,7 @@ def make_orbit_plots(
         save_to=None, base_orbit=None):
 
     for i, (optic, tw) in enumerate(zip(optics, orbits)):
-        fig = plt.figure(1)
+        fig = plt.figure(1, figsize=(8, 8))
         plot_orbit(fig, model, i, tw, measured,
                    base_orbit=base_orbit and base_orbit[i])
         if save_to is None:
@@ -27,7 +27,7 @@ def make_monitor_plots(
     for index, monitor in enumerate(measured.monitors):
         if monitor in monitor_subset:
             plot_monitor_response(
-                plt.figure(1), monitor,
+                plt.figure(1, figsize=(8, 8)), monitor,
                 model, measured, base_orm, model_orbits, comment)
             if save_to is None:
                 plt.show()
@@ -42,7 +42,7 @@ def make_steerer_plots(
     for index, steerer in enumerate(measured.steerers):
         if steerer in steerer_subset:
             plot_steerer_response(
-                plt.figure(1), steerer,
+                plt.figure(1, figsize=(8, 8)), steerer,
                 model, measured, base_orm, model_orbits, comment)
             if save_to is None:
                 plt.show()
@@ -65,6 +65,7 @@ def plot_monitor_response(
         stddev = (stddev[:, :, 1:]**2 + stddev[:, :, [0]]**2)**0.5
 
     for j, ax in enumerate("xy"):
+
         axes = fig.add_subplot(1, 2, 1+j)
         axes.set_title(ax)
         axes.set_xlabel(r"steerer position [m]")
