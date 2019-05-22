@@ -5,11 +5,41 @@ error using our own function, and then print out all entries in a simple TXT
 format.
 
 Usage:
-    ./bpm_export.py <CSV_FILES>...
+    ./bpm_export.py [-m METHOD] <CSV_FILES>...
+
+Options:
+    -m METHOD, --mean METHOD        Set method to calculate mean value and
+                                    standard error. Possible values are
+                                    {full, fwhm} [default: weighted]
 """
+
+from docopt import docopt
 
 import pandas as pd
 from time import strptime, mktime
+from math import sqrt, log
+
+
+# conversion factor from FWHM to standard deviation for normal distributions:
+fwhm_to_stddev = 2 * sqrt(2 * log(2))
+
+
+def builtin_mean_func(data, custom):
+    return {
+        'x': custom['Schwerpunkt X'],
+        'y': custom['Schwerpunkt Y'],
+        'sigx': custom['FWHM X'] * fwhm_to_stddev,
+        'sigy': custom['FWHM Y'] * fwhm_to_stddev,
+        'errx': 0,
+        'erry': 0,
+    }
+
+
+def weighted_mean_func(data, custom):
+    x, sigx, errx = weighted_mean(data['Drahtposition x'], data['X'])
+    y, sigy, erry = weighted_mean(data['Drahtposition y'], data['Y'])
+    return {'x': x, 'sigx': sigx, 'errx': errx,
+            'y': y, 'sigy': sigy, 'erry': erry}
 
 
 def weighted_mean(x, w):
@@ -18,8 +48,9 @@ def weighted_mean(x, w):
     """
     w_tot = sum(w)
     x_mean = sum(x * w) / w_tot
+    stddev = sum(w * (x - x_mean)**2)**0.5 / w_tot
     sig_sq = sum(w**2 * (x - x_mean)**2) / w_tot * len(x) / (len(x) - 1)
-    return x_mean, sig_sq**0.5
+    return x_mean, stddev, sig_sq**0.5
 
 
 def csv_to_tab(fnames, mean_func=weighted_mean):
@@ -28,17 +59,12 @@ def csv_to_tab(fnames, mean_func=weighted_mean):
     dicts = []
     for fname in fnames:
         header, custom, data = parse_csv_export(fname)
-        x, sigx = mean_func(data['Drahtposition x'], data['X'])
-        y, sigy = mean_func(data['Drahtposition y'], data['Y'])
         time = mktime(strptime(header['Startzeit'], '%d.%m.%Y %H:%M:%S'))
         dicts.append({
             'bpm': header['Gerät'],
-            'x': x,
-            'y': y,
-            'sigx': sigx,
-            'sigy': sigy,
             'cycle': header['Zyklus ID'],
             'time': round(time),
+            **mean_func(data, custom)
         })
     return pd.DataFrame(
         dicts, columns=['bpm', 'x', 'y', 'sigx', 'sigy', 'cycle', 'time'])
@@ -67,7 +93,19 @@ def _parse_section(lines, start, end):
         yield line.strip().split(';')
 
 
-if __name__ == '__main__':
-    import sys
-    df = csv_to_tab(sys.argv[1:])
+MEAN_FUNCS = {
+    'full': weighted_mean_func,
+    'fwhm': builtin_mean_func,
+}
+
+
+def main(args=None):
+    opts = docopt(__doc__, args)
+    df = csv_to_tab(
+        opts['<CSV_FILES>'],
+        MEAN_FUNCS[opts['--method']])
     print(df.to_string())
+
+
+if __name__ == '__main__':
+    import sys; sys.exit(main(sys.argv[1:]))
