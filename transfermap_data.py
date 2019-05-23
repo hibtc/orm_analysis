@@ -1,3 +1,24 @@
+"""
+This script plots the measured BPM readout at G3DG5G versus the particle
+position/momentum at T3DF1 (computed through the MWPCs measurements near the
+ISO center: T3DG2G, T3DG1G, T3DF1), as well as the modelled orbit predicted by
+backtracking initial conditions from T3DF1.
+
+Usage:
+    ./transfermap_data.py <MEASUREMENT_FILES>
+
+Output will be stored at
+
+    results/
+        -> tm_plots/x.png               X at G3DG5G versus X/PX/Y/PY at T3DF1
+        -> tm_plots/y.png               Y at G3DG5G versus X/PX/Y/PY at T3DF1
+        -> transfer_map.txt
+        -> transfer_particles.txt
+
+Example:
+    ./transfermap_data.py 2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml
+"""
+
 import os
 import sys
 from madgui.online.orbit import fit_particle_readouts, Readout
@@ -7,12 +28,18 @@ import matplotlib.pyplot as plt
 
 from orm_util import Analysis
 
+
 record_files = (
     sys.argv[1:] or
     'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
 
 def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
+    """Extrapolate particle position/momentum from the position measurements
+    of the given BPMs ``from_monitors``.
+
+    This function uses only SECTORMAP and should therefore only be used on
+    pure drift sections."""
     # TODO: in the more general case, we would also need to set the strengths
     # corresponding to i_optic
     return fit_particle_readouts(model, [
@@ -24,15 +51,20 @@ def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
 
 ana = Analysis.app('../hit_models/hht3', record_files)
 
+# show results at this element:
 obs_el = 'g3dg5g'
 obs_idx = ana.monitors.index(obs_el)
 
-# estimate particle coordinates at ISO center:
+# use these bpms to guess the initial conditions for the backtracking run:
 from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
+
+# estimate particle coordinates at ISO center:
 final_orbits = [
     extrapolate_orbit(ana.measured, i, ana.model, from_monitors)
     for i, optic in enumerate(ana.optics)
 ]
+
+# prepare initial coordinates for backtracking:
 reverse_init_orbits = [
     (-orbit['x'], orbit['px'], orbit['y'], -orbit['py'])
     for orbit in final_orbits
