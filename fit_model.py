@@ -1,11 +1,10 @@
 import sys
 from madgui.model.errors import parse_error
-from madgui.online.orbit import fit_particle_readouts, Readout
 from scipy.optimize import Bounds
 
 from cpymad.types import VAR_TYPE_DIRECT
 
-from orm_util import Analysis, get_orbit
+from orm_util import Analysis
 
 
 def parse_errors(names):
@@ -16,39 +15,11 @@ record_files = (
     sys.argv[1:] or
     'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
-
-def extrapolate_orbit(measured, i_knob, model, from_monitors, to='#e'):
-    # TODO: in the more general case, we would also need to set the strengths
-    # corresponding to i_knob
-    return fit_particle_readouts(model, [
-        Readout(monitor, *measured.orbits[index, :, i_knob])
-        for monitor in from_monitors
-        for index in [measured.monitors.index(monitor.lower())]
-    ], to=to)[0][0]
-
+from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
 
 ana = Analysis.app('../hit_models/hht3', record_files)
-
-from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
-final_orbits = [
-    extrapolate_orbit(ana.measured, i, ana.model, from_monitors)
-    for i, optic in enumerate(ana.optics)
-]
-reverse_init_orbits = {
-    optic: {'x': -orbit['x'], 'px': orbit['px'],
-            'y': orbit['y'], 'py': -orbit['py']}
-    for optic, orbit in zip(ana.optics, final_orbits)
-}
-
-ana._get_orbit = lambda optic, errs, vals: get_orbit(
-    ana.model, optic, errs, vals, betx=1, bety=1,
-    **reverse_init_orbits[optic])
-
-ana.model.reverse()
-ana.model.update_twiss_args(reverse_init_orbits[()])
-ana.measured.orbits[:, 0, :] *= -1
-ana.measured.stddev[:, :, :] = 1e-4
-
+ana.ensure_monitors_available(from_monitors)
+ana.setup_backtracking(ana.extrapolate(from_monitors, to='#e'))
 ana.init()
 
 ana.plot_orbit(save_to='results/plots/0-init')

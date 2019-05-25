@@ -1,7 +1,5 @@
 import os
 import sys
-from madgui.online.orbit import fit_particle_readouts, Readout
-import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -26,37 +24,22 @@ def main(record_files):
     # use these bpms to guess the initial conditions for the backtracking run:
     from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
 
-    # pick optics for which we have measured all involved BPMs:
-    involved_bpms = [obs_idx] + [ana.monitors.index(m) for m in from_monitors]
-    usable_optics = [
-        i_optic for i_optic in range(len(ana.optics))
-        if not np.any(np.isnan(
-            ana.measured.orbits[involved_bpms][:, :, i_optic]))
-    ]
-
-    # estimate particle coordinates at ISO center for each of the optics:
-    final_orbits = [
-        extrapolate_orbit(ana.measured, i_optic, ana.model, from_monitors)
-        for i_optic in usable_optics
-    ]
-
-    # prepare initial coordinates for backtracking:
-    reverse_init_orbits = pd.DataFrame([
-        (-orbit['x'], orbit['px'],
-         orbit['y'], -orbit['py'])
-        for orbit in final_orbits
-    ], columns=['x', 'px', 'y', 'py'])
+    ana.ensure_monitors_available([obs_el] + from_monitors)
+    ana.setup_backtracking(ana.extrapolate(from_monitors, to='#e'))
 
     # measured positions with computed momenta at T3DF1:
-    x_iso = np.array(reverse_init_orbits)
+    x_iso = np.array([
+        [twiss['x'], twiss['px'], twiss['y'], twiss['py']]
+        for optic in ana.optics
+        for twiss in [ana._init_twiss[optic]]
+    ])
     # measured positions at G3DG5G:
-    y_obs = ana.measured.orbits[obs_idx][:, usable_optics].T
-    y_obs[:, 0] *= -1       # X[reverse] = -X[forward]
+    y_obs = ana.measured.orbits[obs_idx].T
 
     base_kl = ana.measured.strengths['kl_efg_g3qd42']
     kl = np.array([
-        dict(ana.optics[i_optic]).get('kl_efg_g3qd42', base_kl)
-        for i_optic in usable_optics
+        dict(optic).get('kl_efg_g3qd42', base_kl)
+        for optic in ana.optics
     ])
     print(kl)
     print(ana.optics)
@@ -67,13 +50,7 @@ def main(record_files):
 
     # compute positions at G3DGG by backtracking from G3DG5G:
     ana.model.update_globals(ana.measured.strengths)
-    ana.model.reverse()
-    ana.model.update_twiss_args(reverse_init_orbits.iloc[0].to_dict())
-
-    y_model = np.array([
-        track(ana.model, *orbit, range=f'#s/{obs_el}')
-        for orbit in x_iso
-    ]).T
+    y_model = ana.compute_model_orbits()[obs_idx]
 
     for iy, y_ax in enumerate('xy'):
         fig = plt.figure(figsize=(8, 8))
@@ -86,27 +63,6 @@ def main(record_files):
                   bbox_to_anchor=(-0.1, -0.2), shadow=True, ncol=4)
         fig.savefig(prefix+f'{y_ax}.png', bbox_inches='tight')
         plt.clf()
-
-
-def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
-    """Extrapolate particle position/momentum from the position measurements
-    of the given BPMs ``from_monitors``.
-
-    This function does NOT update optics and is therefore only elligible for
-    pure DRIFT sections."""
-    # TODO: in the more general case, we would also need to set the strengths
-    # corresponding to i_optic
-    return fit_particle_readouts(model, [
-        Readout(monitor, *measured.orbits[index, :, i_optic])
-        for monitor in from_monitors
-        for index in [measured.monitors.index(monitor.lower())]
-    ], to=to)[0][0]
-
-
-def track(model, x, px, y, py, range='#s/#e'):
-    """Return final (x, y) for a particle with the given initial conditions."""
-    tw = model.track_one(x=x, px=px, y=y, py=py, range=range)
-    return [tw.x[-1], tw.y[-1]]
 
 
 if __name__ == '__main__':

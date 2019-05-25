@@ -32,7 +32,7 @@ class OrbitResponse:
         }
 
         nans = [np.nan, np.nan]
-        # TODO: we should use the "base optic" before the "steerer"
+        # dimensions [monitor x axis x optic]
         self.orbits = np.dstack([
             np.vstack([
                 orbits.get((monitor, optic), nans)
@@ -75,6 +75,11 @@ class OrbitResponse:
                    sorted(monitors, key=model.elements.index),
                    sorted_optics(model, optics))
 
+    def filter_optics(self, indices):
+        self.optics = [self.optics[i] for i in indices]
+        self.orbits = self.orbits[:, :, indices]
+        self.variance = self.variance[:, :, indices]
+        self.stddev = self.stddev[:, :, indices]
 
 def map_knobs_to_elements(model):
     """Build a dictionary that maps knob name (lowercase) to element."""
@@ -148,15 +153,6 @@ def _convert_orm_export(data):
     }
 
 
-def fit_init_orbit(model, measured, fit_monitors):
-    (twiss_init, chisq, singular), curve = fit_particle_readouts(model, [
-        Readout(monitor, *measured.orbits[index, :, 0])
-        for monitor in fit_monitors
-        for index in [measured.monitors.index(monitor.lower())]
-    ])
-    return twiss_init
-
-
 class Analysis:
 
     def __init__(self, model, measured):
@@ -167,6 +163,41 @@ class Analysis:
         self.optics = measured.optics
         self.errors = []
         self.values = []
+        self._init_twiss = {}
+
+    def ensure_monitors_available(self, monitors):
+        """Pick optics for which we have measured all of the given BPMs."""
+        involved_bpms = [self.monitors.index(m) for m in monitors]
+        usable_optics = [
+            i_optic for i_optic in range(len(self.optics))
+            if not np.any(np.isnan(
+                self.measured.orbits[involved_bpms][:, :, i_optic]))
+        ]
+        self.measured.filter_optics(usable_optics)
+        self.optics = self.measured.optics
+
+    def setup_backtracking(self, final_orbits):
+        """Reverse sequence, set the initial coordinates for each optic from
+        the given final coordinates."""
+        self._init_twiss = {
+            optic: {'x': -orbit['x'], 'px': orbit['px'],
+                    'y': orbit['y'], 'py': -orbit['py']}
+            for optic, orbit in final_orbits.items()
+        }
+        self.model.reverse()
+        self.model.update_twiss_args(self._init_twiss.get((), {}))
+        self.measured.orbits[:, 0, :] *= -1
+        self.measured.stddev[:, :, :] = 1e-4
+
+    def extrapolate(self, monitors, to='#e'):
+        """Extrapolate x/px/y/py for all known optics from the measurements
+        at the given monitors."""
+        self.ensure_monitors_available(monitors)
+        return {
+            optic: extrapolate_orbit(
+                self.measured, i, self.model, monitors, to=to)
+            for i, optic in enumerate(self.optics)
+        }
 
     def init(self, strengths=None):
         print("INITIAL")
@@ -205,7 +236,9 @@ class Analysis:
         ])[idx]
 
     def _get_orbit(self, optic, errs, vals):
-        return get_orbit(self.model, optic, errs, vals)
+        return get_orbit(
+            self.model, optic, errs, vals,
+            **self._init_twiss.get(optic, {}))
 
     def get_selected_monitors(self, selected):
         return [self.monitors.index(m.lower()) for m in selected]
@@ -242,7 +275,8 @@ class Analysis:
 
     def backtrack(self, monitors):
         print("TWISS INIT")
-        twiss_args = fit_init_orbit(self.model, self.measured, monitors)
+        twiss_args = extrapolate_orbit(
+            self.measured, 0, self.model, monitors, '#s')
         self.model.update_twiss_args(twiss_args)
         self.model_orbits = self.compute_model_orbits()
         return twiss_args
@@ -344,3 +378,18 @@ def get_orbit(model, optic, errors, values, **twiss_args):
         model.update_globals(optic)
         with apply_errors(model, errors, values):
             return madx.twiss(**model._get_twiss_args(**twiss_args))
+
+
+def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
+    """Extrapolate particle position/momentum from the position measurements
+    of the given BPMs ``from_monitors``.
+
+    This function does NOT update optics and is therefore only elligible for
+    pure DRIFT sections."""
+    # TODO: in the more general case, we would also need to set the strengths
+    # corresponding to i_optic
+    return fit_particle_readouts(model, [
+        Readout(monitor, *measured.orbits[index, :, i_optic])
+        for monitor in from_monitors
+        for index in [measured.monitors.index(monitor.lower())]
+    ], to=to)[0][0]
