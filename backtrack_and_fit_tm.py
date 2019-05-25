@@ -125,6 +125,22 @@ def main(record_files):
         fig.savefig(prefix+f'{y_ax}.png', bbox_inches='tight')
         plt.clf()
 
+        # with #optic on the x axis:
+        fig = plt.figure(figsize=(8, 8))
+        off = offset[iy][0] * 1000
+        ax = fig.add_subplot(1, 1, 1)
+        ax.set_title(f"backtracked {y_ax} at {obs_el} versus optic index")
+        ax.set_xlabel(f'optic')
+        ax.set_ylabel(f'{y_ax} / mm')
+        ax.plot(y_obs[:, iy]*1000, 'o', label=f'measured')
+        # ax.plot(y_model[iy], label=f'model')
+        ax.plot(y_fit[iy]*1000, label='fit')
+        ax.plot(y_offset[iy]*1000, label=fr'$\mathrm{{model}}{off:+.2f}$')
+
+        ax.legend(fancybox=True, shadow=True)
+        fig.savefig(prefix+f'{y_ax}_by_optic.png', bbox_inches='tight')
+        plt.clf()
+
 
 def red_chisq(x, err=1, ddof=0):
     res = (x / err).flatten()
