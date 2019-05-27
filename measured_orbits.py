@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Convert ORM measurement files to numpy/gnuplot compatible files.
 

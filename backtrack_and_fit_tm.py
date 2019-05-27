@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 I wrote this script to visualize and investigate the discrepancies between
 model and measurements of G3MU3 (the final 90° gantry dipole).

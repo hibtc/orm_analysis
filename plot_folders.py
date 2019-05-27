@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Generate plots from previously computed orbit/response data.
 

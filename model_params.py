@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Generate a list of error parameters for the given model.
 

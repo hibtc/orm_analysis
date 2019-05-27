@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Script to read BPM profile exports in .CSV format, calculate mean and standard
 error using our own function, and then print out all entries in a simple TXT

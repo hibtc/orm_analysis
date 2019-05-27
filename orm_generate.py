@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python
 from unittest import mock
 from contextlib import ExitStack
 import time

@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """
 Fit model to measurements using the given error parameters.
 
