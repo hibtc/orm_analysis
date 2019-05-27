@@ -76,7 +76,7 @@ The ``errors.yml`` file might look as follows:
     ./model_orbits.py --help
 
 
-``measured_orbist.py``::
+``measured_orbits.py``::
 
     ./measured_orbits.py -m hht3 -o measured/ \
         data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1
