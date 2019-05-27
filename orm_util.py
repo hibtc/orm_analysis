@@ -7,7 +7,7 @@ from cpymad.madx import TwissFailed
 import madgui.util.yaml as yaml
 from madgui.util.fit import reduced_chisq, fit
 from madgui.online.orbit import fit_particle_readouts, Readout
-from madgui.model.errors import apply_errors
+from madgui.model.errors import apply_errors, parse_error
 from madgui.util.undo import UndoStack
 
 
@@ -281,14 +281,23 @@ class Analysis:
         self.model_orbits = self.compute_model_orbits()
         return twiss_args
 
-    def fit(self, errors, monitors, delta=1e-4,
+    def fit(self, errors, monitors=None, delta=1e-4,
             mode='xy', iterations=50, bounds=None, fourier=False,
             tol=1e-8, use_stddev=True, save_to=None, **kwargs):
+
+        if isinstance(errors, dict):
+            x0 = np.array(list(errors.values()))
+            errors = list(errors.keys())
+        else:
+            x0 = np.zeros(len(errors))
 
         model = self.model
         measured = self.measured
         stddev = measured.stddev if use_stddev else 1
         err_names = ', '.join(map(repr, errors))
+
+        if monitors is None:
+            monitors = self.monitors
 
         print("====================")
         print("FIT:", ', '.join(monitors or self.monitors))
@@ -331,7 +340,6 @@ class Analysis:
                 ]).transpose((1, 2, 3, 0))
             return obj
 
-        x0 = np.zeros(len(errors))
         result = fit(
             objective, x0, tol=tol,
             delta=delta, iterations=iterations, callback=callback, **kwargs)
@@ -393,3 +401,10 @@ def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
         for monitor in from_monitors
         for index in [measured.monitors.index(monitor.lower())]
     ], to=to)[0][0]
+
+
+def parse_errors(names):
+    if isinstance(names, dict):
+        return {parse_error(k): v for k, v in names.items()}
+    else:
+        return [parse_error(k) for k in names]
