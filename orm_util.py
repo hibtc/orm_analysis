@@ -195,7 +195,7 @@ class Analysis:
         self.ensure_monitors_available(monitors)
         return {
             optic: extrapolate_orbit(
-                self.measured, i, self.model, monitors, to=to)
+                self.measured, i, optic, self.model, monitors, to=to)
             for i, optic in enumerate(self.optics)
         }
 
@@ -276,7 +276,7 @@ class Analysis:
     def backtrack(self, monitors):
         print("TWISS INIT")
         twiss_args = extrapolate_orbit(
-            self.measured, 0, self.model, monitors, '#s')
+            self.measured, 0, self.optics[0], self.model, monitors, '#s')
         self.model.update_twiss_args(twiss_args)
         self.model_orbits = self.compute_model_orbits()
         return twiss_args
@@ -388,19 +388,18 @@ def get_orbit(model, optic, errors, values, **twiss_args):
             return madx.twiss(**model._get_twiss_args(**twiss_args))
 
 
-def extrapolate_orbit(measured, i_optic, model, from_monitors, to='#e'):
+def extrapolate_orbit(measured, i_optic, optic, model, from_monitors, to='#e'):
     """Extrapolate particle position/momentum from the position measurements
-    of the given BPMs ``from_monitors``.
-
-    This function does NOT update optics and is therefore only elligible for
-    pure DRIFT sections."""
+    of the given BPMs ``from_monitors``."""
     # TODO: in the more general case, we would also need to set the strengths
     # corresponding to i_optic
-    return fit_particle_readouts(model, [
-        Readout(monitor, *measured.orbits[index, :, i_optic])
-        for monitor in from_monitors
-        for index in [measured.monitors.index(monitor.lower())]
-    ], to=to)[0][0]
+    with model.undo_stack.rollback():
+        model.update_globals(optic)
+        return fit_particle_readouts(model, [
+            Readout(monitor, *measured.orbits[index, :, i_optic])
+            for monitor in from_monitors
+            for index in [measured.monitors.index(monitor.lower())]
+        ], to=to)[0][0]
 
 
 def parse_errors(names):
