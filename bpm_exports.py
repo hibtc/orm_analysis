@@ -102,20 +102,55 @@ def diff_histogram(df, bpm, save_to=None):
     fig = plt.figure()
     fig.suptitle(bpm)
 
+    np.set_printoptions(
+        precision=5,
+        suppress=True,        # no scientific notation
+        linewidth=120,
+        sign=' ')
+
     for i, axis_name in enumerate('xy'):
         xdata = df[axis_name + '_fwhm']
         ydata = df[axis_name + '_full']
+
+        ones = np.ones((len(ydata), 1))
+        afit = np.hstack((ydata[:, None], ones))
+
+        xfit, resid, rank, s = np.linalg.lstsq(afit, xdata, rcond=None)
+        slope, intercept = xfit
+        print(bpm, axis_name, xfit)
+
+        ydata = ydata * slope + intercept
 
         xmin = floor(min(xdata.min(), ydata.min()))
         xmax = ceil(max(xdata.max(), ydata.max()))
 
         ax = fig.add_subplot(1, 2, i + 1)
         ax.set_title(axis_name)
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(xmin, xmax)
-        ax.set_aspect(1)
-        ax.plot(df[axis_name + '_fwhm'], df[axis_name + '_full'], 'o')
-        ax.plot([xmin, xmax], [xmin, xmax])
+        if True:
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(xmin, xmax)
+            ax.set_aspect(1)
+            ax.plot(xdata, ydata, 'o')
+            ax.plot([xmin, xmax], [xmin, xmax])
+        else:
+            ax.hist(ydata - xdata, 15)
+
+        # w     = w_b + w_n
+        #
+        # mu_b  = mu * S
+        #       = sum(w_b * x) / sum(w_b)
+        #
+        # mu    = sum(w * x) / sum(w)
+        #       = sum((w_b + w_n) * x) / sum(w_b + w_n)
+        #       = (sum(w_b * x) + sum(w_n * x)) / (sum(w_b) + sum(w_n))
+        #       = sum(w_b * x) / (sum(w_b) + sum(w_n))
+        #       = mu_b * sum(w_b) / (sum(w_b) + sum(w_n))
+        #
+        # S     = mu_b / mu
+        #       = (sum(w_b) + sum(w_n)) / sum(w_b)
+        #       = sum(w) / sum(w_b)
+        # sum(w_b) = sum(w) / S
+        # noise = sum(w_n) / N = sum(w)/S/N
 
     if save_to is None:
         plt.show(fig)
