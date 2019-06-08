@@ -216,12 +216,19 @@ def args(*args, **kwargs):
 
 
 def copy_results():
+    dest = '../../reports/2019-06-14-madgui/plots/'
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-25.png',
-        '../../reports/2019-06-14-madgui/plots/orbit-simple-lim-25.png')
+        dest + 'orbit-simple-lim-25.png')
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-200.png',
-        '../../reports/2019-06-14-madgui/plots/orbit-simple-lim-200.png')
+        dest + 'orbit-simple-lim-200.png')
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beam_pos_g3dg5g.png',
+        dest)
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beampos_vs_optic.png',
+        dest)
 
 
 def main():
