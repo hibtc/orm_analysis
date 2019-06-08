@@ -37,7 +37,7 @@ def main(args=None):
     model = opts['--model']
     record_files = (
         opts['RECORDS'] or
-        'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
     ana = Analysis.app(model, record_files)
 

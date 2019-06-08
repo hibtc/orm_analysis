@@ -40,7 +40,7 @@ from orm_util import Analysis
 def main(record_files):
     record_files = (
         record_files or
-        'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
     ana = Analysis.app('../hit_models/hht3', record_files)
 

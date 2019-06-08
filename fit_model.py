@@ -33,7 +33,7 @@ def main(args=None):
 
     record_files = (
         opts['<MEASURED>'] or
-        'data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
     model_path = opts['--model'] or '../hit_models/hht3'
     ana = Analysis.app(model_path, record_files)

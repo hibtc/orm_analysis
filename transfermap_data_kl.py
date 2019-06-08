@@ -11,7 +11,7 @@ from orm_util import Analysis
 def main(record_files):
     record_files = (
         record_files or
-        'data/2019-01-20_quadscan/M8-E108-F1-I9-G1/3-*/*.yml')
+        '../data/orm/2019-01-20_quadscan/M8-E108-F1-I9-G1/3-*/*.yml')
 
     ana = Analysis.app('../hit_models/hht3', record_files)
 

@@ -42,7 +42,7 @@ def main(args=None):
     model_file = opts['--model'] or '../hit_models/hht3'
     record_files = (
         opts['RECORDS'] or
-        ['data/2018-10-20-orm_measurements/M8-E108-F1-I9-G1'])
+        ['../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1'])
 
     if len(record_files) == 1 and os.path.isdir(record_files[0]):
         default_prefix = record_files[0] + '_'
