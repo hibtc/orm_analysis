@@ -30,10 +30,10 @@ Output will be stored under `results/tm`:
 
 import os
 import sys
-from math import ceil, floor
 import numpy as np
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 from orm_util import Analysis
 
@@ -45,12 +45,14 @@ def main(record_files):
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/*.yml')
 
     ana = Analysis.app('../hit_models/hht3', record_files)
-
     prefix = 'results/tm/'
+    plot_beampos_at(ana, prefix)
+
+
+def plot_beampos_at(ana, prefix, obs_el='g3dg5g'):
     os.makedirs(prefix, exist_ok=True)
 
     # show results at this element:
-    obs_el = 'g3dg5g'
     obs_idx = ana.monitors.index(obs_el)
 
     # use these bpms to guess the initial conditions for the backtracking run:
@@ -111,39 +113,33 @@ def main(record_files):
     print("red χ² [fit]    =", red_chisq(resid_e, err=0.5e-3, ddof=8))
     print("red χ² [offset] =", red_chisq(resid_o, err=0.5e-3, ddof=1))
 
+
+    fig = plt.figure()
+
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_title(f"beam position at {obs_el}")
     # plot
     for iy, y_ax in enumerate('xy'):
-        fig = plt.figure(figsize=(8, 8))
-        fig.suptitle(
-            f"backtracked {y_ax} at {obs_el} versus beam coordinates at ISO center")
-        for ix, x_ax in enumerate(('x', 'px', 'y', 'py')):
-            ax = fig.add_subplot(2, 2, 1 + ix)
-            ax.set_title(f'{y_ax}({x_ax})')
-            I = np.argsort(x_iso[:, ix])
-            ax.plot(x_iso[I, ix], y_obs[iy, I], label=f'measured')
-            # ax.plot(x_iso[I, ix], y_model[iy, I], label=f'model')
-            ax.plot(x_iso[I, ix], y_fit[iy, I], label='fit')
-            ax.plot(x_iso[I, ix], y_offset[iy, I], label=f'model + {offset[iy][0]}')
-        ax.legend(loc='upper center', fancybox=True,
-                  bbox_to_anchor=(-0.1, -0.2), shadow=True, ncol=4)
-        fig.savefig(prefix+f'{y_ax}.png', bbox_inches='tight')
-        plt.clf()
-
         # with #optic on the x axis:
-        fig = plt.figure(figsize=(8, 8))
-        off = offset[iy][0] * 1000
-        ax = fig.add_subplot(1, 1, 1)
-        ax.set_title(f"backtracked {y_ax} at {obs_el} versus optic index")
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_xlabel(f'optic')
-        ax.set_ylabel(f'{y_ax} / mm')
-        ax.plot(y_obs[iy]*1000, 'o', label=f'measured')
+        ax.set_ylabel(f'beam position [mm]')
+        #ax.set_title(y_ax.upper())
+        ax.plot(y_obs[iy]*1000, 'o', label=f'measured: {y_ax}')
         # ax.plot(y_model[iy], label=f'model')
-        ax.plot(y_fit[iy]*1000, label='fit')
-        ax.plot(y_offset[iy]*1000, label=fr'$\mathrm{{model}}{off:+.2f}$')
+        # ax.plot(y_fit[iy]*1000, label='fit')
 
-        ax.legend(fancybox=True, shadow=True)
-        fig.savefig(prefix+f'{y_ax}_by_optic.png', bbox_inches='tight')
-        plt.clf()
+    for iy, y_ax in enumerate('xy'):
+        off = offset[iy][0] * 1000
+        ax.plot(y_offset[iy]*1000, label=fr'model: ${y_ax} {off:+.2f}$')
+
+    ax.autoscale()
+    ax.set_ylim(ax.get_ylim()[0]-1, ax.get_ylim()[1])
+    ax.legend(fancybox=True, shadow=True,
+              loc='lower left', bbox_to_anchor=(0.0, 0.0), ncol=2)
+    fig.savefig(prefix+f'beampos_vs_optic.png', bbox_inches='tight', dpi=400)
+    plt.clf()
+
 
     print("plot measured versus expected X/Y")
     fig, axes = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]})
@@ -171,66 +167,8 @@ def main(record_files):
         ax.set_aspect(1)
 
     axes[0].set_ylabel(f'model [mm]')
-    fig.savefig(prefix+f'beam_pos_g3dg5g.png', bbox_inches='tight', dpi=400)
+    fig.savefig(prefix+f'beam_pos_{obs_el}.png', bbox_inches='tight', dpi=400)
     plt.clf()
-
-
-    print("Plotting measured versus model orbit (same plot)")
-    fig = plt.figure()
-    fig.suptitle('beam position at G3DG5G', y=0.87)
-    ax_x = fig.add_subplot(1, 1, 1)
-    ax_R = ax_x.twinx()
-    ax_y = ax_R.twiny()
-    ax_x.set_xlabel(f'measured X [mm]', color='C0')
-    ax_y.set_xlabel(f'measured Y [mm]', color='C1')
-    ax_x.set_ylabel(f'model X [mm]', color='C0')
-    ax_R.set_ylabel(f'model Y [mm]', color='C1')
-    ax_x.tick_params(axis='x', labelcolor='C0')
-    ax_x.tick_params(axis='y', labelcolor='C0')
-    ax_y.tick_params(axis='x', labelcolor='C1')
-    ax_R.tick_params(axis='y', labelcolor='C1')
-    ax_x.spines['left'].set_color('C0')
-    ax_x.spines['bottom'].set_color('C0')
-    ax_x.spines['top'].set_color('C1')
-    ax_x.spines['right'].set_color('C1')
-
-    xdata = y_obs * 1000
-    ydata = y_model * 1000
-    yerr = y_err * 1000
-
-    I = np.argsort(xdata[0])
-    ax_x.errorbar(xdata[0, I], ydata[0, I], yerr[0, I],
-                  fmt='', label='X', color='C0')
-
-    I = np.argsort(xdata[1])
-    ax_y.errorbar(xdata[1, I], ydata[1, I], yerr[1, I],
-                  fmt='', label='Y', color='C1')
-
-    #ax_x.set_aspect(1)
-    #ax_y.set_aspect(1)
-
-    set_lims(ax_x, xdata[0, I], ydata[0, I])
-    set_lims(ax_y, xdata[1, I], ydata[1, I])
-
-    fig.savefig(prefix+f'measured_vs_model.png', bbox_inches='tight', dpi=400)
-    plt.clf()
-
-
-def set_lims(ax, xdata, ydata):
-    xmin, xmax = floor(min(xdata) - 0.5), ceil(max(xdata) + 0.5)
-    ymin, ymax = floor(min(ydata) - 0.5), ceil(max(ydata) + 0.5)
-
-    size = max(xmax - xmin, ymax - ymin)
-    xadd = size - (xmax - xmin)
-    yadd = size - (ymax - ymin)
-
-    xmin -= xadd / 2
-    xmax += xadd / 2
-    ymin -= yadd / 2
-    ymax += yadd / 2
-
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymin, ymax)
 
 
 def red_chisq(x, err=1, ddof=0):
