@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # Plots:
 
 
@@ -45,7 +46,7 @@ ISOC_BPMS = ['t3dg2g', 't3dg1g', 't3df1']
 # Folders with corresponding '.knobs.str' and '.bpms.yml' files with
 # measurements for a single optic:
 single_optic_measurements_folders = [
-#   'correct/2018-06-18-correct/',      # the other dataset is a bit nicer
+    'correct/2018-06-18-correct/',      # the other dataset is a bit nicer
     'correct/2018-07-03-correct/',
 #   'correct/2018-07-15-correct/',      # only has MWPCs, not very useful
 ]
@@ -198,15 +199,19 @@ def args(*args, **kwargs):
     return args, kwargs
 
 
-def main():
-    plot_single_optic_measurements()
-    os.makedirs('presentation_plots', exist_ok=True)
+def copy_results():
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-25.png',
         '../../reports/2019-06-14-madgui/plots/orbit-simple-lim-25.png')
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-200.png',
         '../../reports/2019-06-14-madgui/plots/orbit-simple-lim-200.png')
+
+
+def main():
+    plot_single_optic_measurements()
+    os.makedirs('presentation_plots', exist_ok=True)
+    copy_results()
 
 
 if __name__ == '__main__':
