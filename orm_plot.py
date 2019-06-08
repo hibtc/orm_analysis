@@ -176,6 +176,7 @@ def plot_orbit(fig, model, i, twiss, measured, base_orbit):
 
 def create_twiss_figure(model):
     fig = plt.figure(1)
+    fig.clf()
     axx = fig.add_subplot(2, 1, 1)
     axy = fig.add_subplot(2, 1, 2, sharex=axx)
     axy.set_xlabel("Position $s$ [m]")
@@ -188,4 +189,5 @@ def create_twiss_figure(model):
 
 
 def background_style(style):
-    return dict(style, alpha=0.2)
+    alpha = 1 if style.get('alpha') == 1 else 0.15
+    return dict(style, alpha=alpha)
