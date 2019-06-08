@@ -67,11 +67,13 @@ orm_measurements_folders = [
 # CSV files with BPM profile exports:
 bpm_profile_exports = [
     'emittance/2017-09-26-emittance/4300/*/*.CSV',
-    'emittance/2018-08-05-emittance/4?00/*/*.CSV',
-    'emittance/2019-01-19-emittance/4?00/*/*.CSV',
+    'emittance/2018-08-05-emittance/4300/*/*.CSV',
+    'emittance/2018-08-05-emittance/4400/*/*.CSV',
+    'emittance/2019-01-19-emittance/4300/*/*.CSV',
+    'emittance/2019-01-19-emittance/4400/*/*.CSV',
     'emittance/2019-04-15-emittance/4300/*/*.CSV',
     'emittance/2019-04-26-emittance/4400/*/*.CSV',
-    'orm/2019-05-11-orm_measurements/Gitter-Exporte/*.CSV',
+    'orm/2019-05-11-orm_measurements/Gitter-Exporte/*/*.CSV',
 ]
 
 # what about offset calibrations?

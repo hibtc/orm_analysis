@@ -187,7 +187,7 @@ class Analysis:
         self.model.reverse()
         self.model.update_twiss_args(self._init_twiss.get((), {}))
         self.measured.orbits[:, 0, :] *= -1
-        self.measured.stddev[:, :, :] = 1e-4
+        #self.measured.stddev[:, :, :] = 1e-4
 
     def extrapolate(self, monitors, to='#e'):
         """Extrapolate x/px/y/py for all known optics from the measurements
@@ -365,7 +365,7 @@ class Analysis:
         init_app(['madgui'])
 
         if isinstance(record_files, str):
-            record_files = glob(record_files)
+            record_files = glob(record_files, recursive=True)
 
         config = load_config(isolated=True)
         session = Session(config)
