@@ -167,6 +167,8 @@ class Analysis:
 
     def ensure_monitors_available(self, monitors):
         """Pick optics for which we have measured all of the given BPMs."""
+        if not all(m in self.monitors for m in monitors):
+            return False
         involved_bpms = [self.monitors.index(m) for m in monitors]
         usable_optics = [
             i_optic for i_optic in range(len(self.optics))
@@ -175,6 +177,7 @@ class Analysis:
         ]
         self.measured.filter_optics(usable_optics)
         self.optics = self.measured.optics
+        return bool(self.optics)
 
     def setup_backtracking(self, final_orbits):
         """Reverse sequence, set the initial coordinates for each optic from
@@ -358,12 +361,14 @@ class Analysis:
     @classmethod
     def app(cls, model_file, record_files):
         from madgui.core.app import init_app
+        init_app(['madgui'])
+        return cls.session(model_file, record_files)
+
+    @classmethod
+    def session(cls, model_file, record_files):
         from madgui.core.session import Session
         from madgui.core.config import load as load_config
         from glob import glob
-
-        init_app(['madgui'])
-
         if isinstance(record_files, str):
             record_files = glob(record_files, recursive=True)
 

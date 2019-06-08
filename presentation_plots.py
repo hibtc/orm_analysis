@@ -22,6 +22,7 @@
 
 
 # BPM profile, gaussian, non-gaussian 
+# BPM value evolution
 
 import shutil
 import os
@@ -60,7 +61,10 @@ orm_measurements_folders = [
     'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G4-ISO/',
     'orm/2019-01-20-orm_measurements/M3-E108-F1-I9-G10-ISO/',
     'orm/2019-01-20-orm_measurements/M8-E108-F1-I9-G1-ISO/',
-    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/',
+    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/0-h3qd22/',
+    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/1-b3qd12/',
+    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/2-g3qd22/',
+    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/3-g3qd42/',
     'orm/2019-05-11-orm_measurements/M8-E108-F1-I9-G1/',
     'orm/2019-05-11-orm_measurements/M8-E108-F1-I9-G1-LIN/',
 ]
@@ -181,6 +185,18 @@ def plot_twissfigure(model, curves, ylim=None):
     return fig
 
 
+def plot_beampos_offset():
+    from orm_util import Analysis
+    from backtrack_and_fit_tm import plot_beampos_at
+    for folder in orm_measurements_folders:
+        record_files = DATA_PREFIX + folder + '*.yml'
+        print(record_files)
+        ana = Analysis.session('../hit_models/hht3', record_files)
+        if ana.ensure_monitors_available(['g3dg5g'] + ISOC_BPMS):
+            prefix = DATA_PREFIX + folder
+            plot_beampos_at(ana, prefix)
+
+
 def strip_suffix(s, suffix):
     return s[:len(s) - len(suffix)] if s.endswith(suffix) else s
 
@@ -209,7 +225,11 @@ def copy_results():
 
 
 def main():
+    from madgui.core.app import init_app
+    init_app(['madgui'])
+
     plot_single_optic_measurements()
+    plot_beampos_offset()
     os.makedirs('presentation_plots', exist_ok=True)
     copy_results()
 
