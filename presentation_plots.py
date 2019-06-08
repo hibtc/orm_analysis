@@ -154,10 +154,18 @@ def interpolate(model, measured, bpms):
 
 
 def plot_twissfigure(model, curves, ylim=None):
-    fig = create_twiss_figure(model)
+    fig = create_twiss_figure(model, ['sbend'])
     ax_x, ax_y = fig.axes
     ax_x.set_ylabel('x [mm]')
     ax_y.set_ylabel('y [mm]')
+    ax_x.axvspan(
+        model.elements['gant_rot'].position,
+        model.elements['patient'].position,
+        color='black', alpha=0.03)
+    ax_y.axvspan(
+        model.elements['gant_rot'].position,
+        model.elements['patient'].position,
+        color='black', alpha=0.03)
 
     for (s, x, y), (args, kwargs) in curves:
         ax_x.plot(s, x * 1000, *args, **kwargs)
@@ -193,10 +201,10 @@ def main():
     os.makedirs('presentation_plots', exist_ok=True)
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-25.png',
-        'presentation_plots/orbit-simple-lim-25.png')
+        '../../reports/2019-06-14-madgui/plots/orbit-simple-lim-25.png')
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-200.png',
-        'presentation_plots/orbit-simple-lim-200.png')
+        '../../reports/2019-06-14-madgui/plots/orbit-simple-lim-200.png')
 
 
 if __name__ == '__main__':

@@ -3,7 +3,8 @@ Plot utility functions for showing results of the ORM analysis.
 """
 
 import matplotlib.pyplot as plt
-from madgui.plot.twissfigure import plot_element_indicators, with_outline
+from madgui.plot.twissfigure import (
+    plot_element_indicators, with_outline, ELEM_STYLES)
 
 
 def make_orbit_plots(
@@ -174,20 +175,24 @@ def plot_orbit(fig, model, i, twiss, measured, base_orbit):
     fig.suptitle("orbit")
 
 
-def create_twiss_figure(model):
+def create_twiss_figure(model, elem_types=None):
     fig = plt.figure(1)
     fig.clf()
+    elem_styles = ELEM_STYLES
+    if elem_types is not None:
+        elem_styles = {k: v for k, v in elem_styles.items() if k in elem_types}
     axx = fig.add_subplot(2, 1, 1)
     axy = fig.add_subplot(2, 1, 2, sharex=axx)
     axy.set_xlabel("Position $s$ [m]")
     for ax, axis in zip((axx, axy), "xy"):
         ax.x_name = ['s']
         ax.y_name = [axis]
-        plot_element_indicators(ax, model.elements, effects=background_style)
+        plot_element_indicators(
+            ax, model.elements, elem_styles, effects=background_style)
         ax.grid(True, axis='y')
     return fig
 
 
 def background_style(style):
-    alpha = 1 if style.get('alpha') == 1 else 0.15
+    alpha = 1 if style.get('alpha') == 1 else 0.25
     return dict(style, alpha=alpha)
