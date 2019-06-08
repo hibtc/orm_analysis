@@ -67,9 +67,9 @@ def plot_monitor_response(
     orbits = response_matrix(measured.orbits)
     model_orbits = response_matrix(model_orbits)
     base_orm = response_matrix(base_orm)
-    stddev = measured.stddev
-    if stddev is not None:
-        stddev = (stddev[:, :, 1:]**2 + stddev[:, :, [0]]**2)**0.5
+    stderr = measured.stderr
+    if stderr is not None:
+        stderr = (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2)**0.5
 
     for j, ax, axes in zip(range(2), "xy", fig.axes):
 
@@ -83,7 +83,7 @@ def plot_monitor_response(
         axes.errorbar(
             xpos,
             orbits[i, j, :].flatten(),
-            stddev[i, j, :].flatten(),
+            stderr[i, j, :].flatten(),
             label=ax + " measured")
 
         lines.append(axes.plot(
@@ -112,9 +112,9 @@ def plot_steerer_response(
     orbits = response_matrix(measured.orbits)
     model_orbits = response_matrix(model_orbits)
     base_orm = response_matrix(base_orm)
-    stddev = measured.stddev
-    if stddev is not None:
-        stddev = (stddev[:, :, 1:]**2 + stddev[:, :, [0]]**2)**0.5
+    stderr = measured.stderr
+    if stderr is not None:
+        stderr = (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2)**0.5
 
     for j, ax, axes in zip(range(2), "xy", fig.axes):
         axes.set_title(ax)
@@ -127,7 +127,7 @@ def plot_steerer_response(
         axes.errorbar(
             xpos,
             orbits[:, j, i].flatten(),
-            stddev[:, j, i].flatten(),
+            stderr[:, j, i].flatten(),
             label=ax + " measured")
 
         lines.append(axes.plot(
@@ -155,7 +155,7 @@ def plot_orbit(fig, model, i, twiss, measured, base_orbit):
 
     xpos = [model.elements[elem].position for elem in measured.monitors]
     orbit = measured.orbits[:, :, i]
-    error = measured.stddev[:, :, i]
+    error = measured.stderr[:, :, i]
 
     for j, ax, axes in zip(range(2), "xy", fig.axes):
 

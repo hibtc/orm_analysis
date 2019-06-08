@@ -32,7 +32,7 @@ class OrbitResponse:
         }
 
         nans = [np.nan, np.nan]
-        # dimensions [monitor x axis x optic]
+        # position measurements, stacked as [monitor × axis × optic]
         self.orbits = np.dstack([
             np.vstack([
                 orbits.get((monitor, optic), nans)
@@ -40,6 +40,8 @@ class OrbitResponse:
             ])
             for optic in optics
         ])
+        # variance of the distribution: σ² = Σ(x - mu_x)² / (N-1)
+        # (using bessel's correction N-1)
         self.variance = np.dstack([
             np.vstack([
                 errors.get((monitor, optic), nans)
@@ -47,7 +49,8 @@ class OrbitResponse:
             ])
             for optic in optics
         ])
-        self.stddev = self.variance ** 0.5 / np.dstack([
+        # standard error of mean: SEM = σ/√N
+        self.stderr = self.variance ** 0.5 / np.dstack([
             np.vstack([
                 counts.get((monitor, optic), 1) ** 0.5
                 for monitor in monitors
@@ -79,7 +82,7 @@ class OrbitResponse:
         self.optics = [self.optics[i] for i in indices]
         self.orbits = self.orbits[:, :, indices]
         self.variance = self.variance[:, :, indices]
-        self.stddev = self.stddev[:, :, indices]
+        self.stderr = self.stderr[:, :, indices]
 
 def map_knobs_to_elements(model):
     """Build a dictionary that maps knob name (lowercase) to element."""
@@ -190,7 +193,7 @@ class Analysis:
         self.model.reverse()
         self.model.update_twiss_args(self._init_twiss.get((), {}))
         self.measured.orbits[:, 0, :] *= -1
-        #self.measured.stddev[:, :, :] = 1e-4
+        #self.measured.stderr[:, :, :] = 1e-4
 
     def extrapolate(self, monitors, to='#e'):
         """Extrapolate x/px/y/py for all known optics from the measurements
@@ -216,13 +219,13 @@ class Analysis:
             sel = slice(None)
         measured = self.measured
         model_orbits = self.model_orbits
-        stddev = measured.stddev
+        stderr = measured.stderr
         print("red χ² =", reduced_chisq(
-            ((measured.orbits - model_orbits) / stddev)[sel], ddof))
+            ((measured.orbits - model_orbits) / stderr)[sel], ddof))
         print("    |x =", reduced_chisq(
-            ((measured.orbits - model_orbits) / stddev)[sel][:, 0, :], ddof))
+            ((measured.orbits - model_orbits) / stderr)[sel][:, 0, :], ddof))
         print("    |y =", reduced_chisq(
-            ((measured.orbits - model_orbits) / stddev)[sel][:, 1, :], ddof))
+            ((measured.orbits - model_orbits) / stderr)[sel][:, 1, :], ddof))
 
     def apply_errors(self, errors, values):
         self.errors[:0] = errors
@@ -296,7 +299,7 @@ class Analysis:
 
         model = self.model
         measured = self.measured
-        stddev = measured.stddev if use_stddev else 1
+        stderr = measured.stderr if use_stddev else 1
         err_names = ', '.join(map(repr, errors))
 
         if monitors is None:
@@ -334,7 +337,7 @@ class Analysis:
                 self.model_orbits = self.compute_model_orbits(errors, values)
             except TwissFailed:
                 return np.array([1e8])
-            obj = ((self.model_orbits - measured.orbits) / stddev)[sel][:, dims, :]
+            obj = ((self.model_orbits - measured.orbits) / stderr)[sel][:, dims, :]
             if fourier:
                 obj = np.fft.rfft(obj, axis=0)
                 obj = np.array([

@@ -43,7 +43,7 @@ def main(args=None):
     elements = ana.model.elements
     strengths = ana.measured.strengths
     orbits = ana.measured.orbits
-    errors = ana.measured.stddev
+    errors = ana.measured.stderr
     base_orbit = orbits[:, :, 0]
     base_error = errors[:, :, 0]
 

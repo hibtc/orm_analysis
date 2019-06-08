@@ -71,7 +71,7 @@ def plot_beampos_at(ana, prefix, obs_el='g3dg5g'):
     ])
     # measured positions at G3DG5G:
     y_obs = ana.measured.orbits[obs_idx]
-    y_err = ana.measured.stddev[obs_idx]
+    y_err = ana.measured.stderr[obs_idx]
 
     # save measured beam coordinates:
     np.savetxt(
