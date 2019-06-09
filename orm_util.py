@@ -167,6 +167,7 @@ class Analysis:
         self.errors = []
         self.values = []
         self._init_twiss = {}
+        self.absolute = True
 
     def ensure_monitors_available(self, monitors):
         """Pick optics for which we have measured all of the given BPMs."""
@@ -214,18 +215,22 @@ class Analysis:
         sel = self.get_selected_monitors(self.monitors)
         self.info(sel)
 
+    def objective(self, model, use_stderr=True):
+        measured = self.measured.orbits
+        stderr = self.measured.stderr
+        if not self.absolute:
+            model = model[:, :, 1:] - model[:, :, [0]]
+            measured = measured[:, :, 1:] - measured[:, :, [0]]
+            stderr = (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2) ** 0.5
+        return (measured - model) / (stderr if use_stderr else 1)
+
     def info(self, sel=None, ddof=0):
         if sel is None:
             sel = slice(None)
-        measured = self.measured
-        model_orbits = self.model_orbits
-        stderr = measured.stderr
-        print("red χ² =", reduced_chisq(
-            ((measured.orbits - model_orbits) / stderr)[sel], ddof))
-        print("    |x =", reduced_chisq(
-            ((measured.orbits - model_orbits) / stderr)[sel][:, 0, :], ddof))
-        print("    |y =", reduced_chisq(
-            ((measured.orbits - model_orbits) / stderr)[sel][:, 1, :], ddof))
+        objective = self.objective(self.model_orbits)
+        print("red χ² =", reduced_chisq(objective[sel], ddof))
+        print("    |x =", reduced_chisq(objective[sel][:, 0, :], ddof))
+        print("    |y =", reduced_chisq(objective[sel][:, 1, :], ddof))
 
     def apply_errors(self, errors, values):
         self.errors[:0] = errors
@@ -248,6 +253,12 @@ class Analysis:
 
     def get_selected_monitors(self, selected):
         return [self.monitors.index(m.lower()) for m in selected]
+
+    def plot_orm(self, monitors=None):
+        if monitors is None:
+            monitors = self.monitors
+        from orm_plot import plot_orm
+        return plot_orm(self.model, self.measured, self.model_orbits, monitors)
 
     def plot_monitors(self, select=None, save_to=None, base_orm=None):
         if select is None:
@@ -289,7 +300,7 @@ class Analysis:
 
     def fit(self, errors, monitors=None, delta=1e-4,
             mode='xy', iterations=50, bounds=None, fourier=False,
-            tol=1e-8, use_stddev=True, save_to=None, **kwargs):
+            tol=1e-8, use_stderr=True, save_to=None, **kwargs):
 
         if isinstance(errors, dict):
             x0 = np.array(list(errors.values()))
@@ -298,8 +309,6 @@ class Analysis:
             x0 = np.zeros(len(errors))
 
         model = self.model
-        measured = self.measured
-        stderr = measured.stderr if use_stddev else 1
         err_names = ', '.join(map(repr, errors))
 
         if monitors is None:
@@ -337,7 +346,7 @@ class Analysis:
                 self.model_orbits = self.compute_model_orbits(errors, values)
             except TwissFailed:
                 return np.array([1e8])
-            obj = ((self.model_orbits - measured.orbits) / stderr)[sel][:, dims, :]
+            obj = self.objective(self.model_orbits, use_stderr)[sel][:, dims, :]
             if fourier:
                 obj = np.fft.rfft(obj, axis=0)
                 obj = np.array([

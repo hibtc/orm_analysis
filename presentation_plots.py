@@ -25,7 +25,6 @@
 # BPM value evolution
 
 import shutil
-import os
 from glob import glob
 
 import numpy as np
@@ -186,16 +185,77 @@ def plot_twissfigure(model, curves, ylim=None):
 
 
 def plot_beampos_offset():
+    print("\nPlotting beam position / offsets at G3DG5G")
     from orm_util import Analysis
     from backtrack_and_fit_tm import plot_beampos_at
     for folder in orm_measurements_folders:
         record_files = DATA_PREFIX + folder + '*.yml'
         print(record_files)
         ana = Analysis.session('../hit_models/hht3', record_files)
+        ana.absolute = False
         if ana.ensure_monitors_available(['g3dg5g'] + ISOC_BPMS):
             prefix = DATA_PREFIX + folder
             plot_beampos_at(ana, prefix)
 
+
+def plot_orms():
+    print("Plotting ORMs for each session")
+    from orm_util import Analysis
+    for folder in orm_measurements_folders:
+        record_files = DATA_PREFIX + folder + '*.yml'
+        print(record_files)
+
+        ana = Analysis.session('../hit_models/hht3', record_files)
+        ana.absolute = False
+
+        hebt_bpms = [m for m in ana.monitors if m in HEBT_BPMS]
+        gant_bpms = [m for m in ana.monitors if m not in HEBT_BPMS
+                     and m not in ('t3dg1g', 't3df1')]
+        isoc_bpms = [m for m in ana.monitors if m in ISOC_BPMS]
+
+        ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
+        ana.init()
+        ana.info([ana.monitors.index(m) for m in hebt_bpms])
+        ana.info([ana.monitors.index(m) for m in gant_bpms])
+        if hebt_bpms:
+            fig = ana.plot_orm(hebt_bpms)
+            suptitle(fig, "Orbit response of pre-gantry BPMs")
+            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-hebt.png')
+        if gant_bpms:
+            fig = ana.plot_orm(gant_bpms)
+            suptitle(fig, "Orbit response of gantry BPMs")
+            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-gantry.png')
+
+        if len(hebt_bpms) >= 2:
+            ana.backtrack(hebt_bpms)
+            if hebt_bpms:
+                fig = ana.plot_orm(hebt_bpms)
+                suptitle(fig, "Orbit response of pre-gantry BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-hebt.png')
+            if gant_bpms:
+                fig = ana.plot_orm(gant_bpms)
+                suptitle(fig, "Orbit response of gantry BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-gantry.png')
+
+        if len(isoc_bpms) >= 2:
+            ana.backtrack(isoc_bpms)
+            if hebt_bpms:
+                fig = ana.plot_orm(hebt_bpms)
+                suptitle(fig, "Orbit response of pre-gantry BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-hebt.png')
+            if gant_bpms:
+                fig = ana.plot_orm(gant_bpms)
+                suptitle(fig, "Orbit response of gantry BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-gantry.png')
+
+
+def suptitle(fig, title):
+    fig.suptitle(title, x=0.04, y=0.98,
+                 horizontalalignment='left',
+                 verticalalignment='top')
+
+def savefig(fig, to):
+    fig.savefig(to, dpi=400)
 
 def strip_suffix(s, suffix):
     return s[:len(s) - len(suffix)] if s.endswith(suffix) else s
@@ -229,6 +289,15 @@ def copy_results():
     shutil.copy(
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beampos_vs_optic.png',
         dest)
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.png',
+        dest)
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-hebt.png',
+        dest + 'orm-backfit-hebt.png')
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.png',
+        dest + 'orm-backfit-gantry.png')
 
 
 def main():
@@ -237,7 +306,7 @@ def main():
 
     plot_single_optic_measurements()
     plot_beampos_offset()
-    os.makedirs('presentation_plots', exist_ok=True)
+    plot_orms()
     copy_results()
 
 

@@ -2,9 +2,67 @@
 Plot utility functions for showing results of the ORM analysis.
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 from madgui.plot.twissfigure import (
     plot_element_indicators, with_outline, ELEM_STYLES)
+
+
+def plot_orm(model, measured, orbits, monitors):
+    fig = plt.figure(1)
+    fig.clf()
+
+    monitors = [m for m in monitors if m in measured.monitors]
+
+    model_orm = orbits[:, :, 1:] - orbits[:, :, [0]]
+    measured_orm = measured.orbits[:, :, 1:] - measured.orbits[:, :, [0]]
+    measured_errors = (measured.stderr[:, :, 1:] ** 2 +
+                       measured.stderr[:, :, [0]] ** 2) ** 0.5
+
+    for iy, name in enumerate("xy"):
+        ax = fig.add_subplot(2, 1, 1+iy)
+        ax.set_ylabel(f'$\Delta {name}$ [mm]')
+
+        num_entries = []
+        ydata_model = []
+        ydata_measured = []
+        errors = []
+
+        for mon in monitors:
+            idx = measured.monitors.index(mon)
+            entry_model = model_orm[idx, iy] * 1000
+            entry_measured = measured_orm[idx, iy] * 1000
+            entry_errors = measured_errors[idx, iy] * 1000
+            defined_region = ~np.isnan(entry_measured)
+            ydata_model.extend(entry_model[defined_region])
+            ydata_measured.extend(entry_measured[defined_region])
+            errors.extend(entry_errors[defined_region])
+            num_entries.append(round(sum(defined_region)))
+
+        xdata = range(len(ydata_model))
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.plot(xdata, ydata_model, '-', color='C0', label="model")
+        ax.errorbar(xdata, ydata_measured, errors, fmt='.',
+                    color='C1', label="measured")
+
+        cumsum = np.cumsum(num_entries)
+        for pos in cumsum[:-1]:
+            ax.axvline(pos + 0.5, linestyle='--', color='k', linewidth=0.5)
+
+    for mon, pos in zip(monitors, cumsum):
+        ax.text(pos-0.5, 0.05, mon,
+                horizontalalignment='right',
+                verticalalignment='bottom',
+                rotation=90,
+                alpha=0.6,
+                transform=ax.get_xaxis_transform())
+
+    fig.axes[-1].set_xlabel("entry")
+    fig.axes[0].legend(
+        loc='lower right', bbox_to_anchor=(1.0, 1.05), ncol=2)
+    fig.suptitle("Orbit response")
+    return fig
 
 
 def make_orbit_plots(
