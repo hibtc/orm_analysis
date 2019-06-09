@@ -34,6 +34,9 @@ from madgui.model.madx import Model
 from madgui.util.yaml import load_file
 from orm_plot import create_twiss_figure
 
+# assumed standard error of mean on BPM in addition to statistical error:
+BPM_ERR = 0.0003    # [m]
+
 
 # ====
 # DATA
@@ -193,6 +196,7 @@ def plot_beampos_offset():
         print(record_files)
         ana = Analysis.session('../hit_models/hht3', record_files)
         ana.absolute = False
+        ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         if ana.ensure_monitors_available(['g3dg5g'] + ISOC_BPMS):
             prefix = DATA_PREFIX + folder
             plot_beampos_at(ana, prefix)
@@ -213,6 +217,7 @@ def plot_orms():
                      and m not in ('t3dg1g', 't3df1')]
         isoc_bpms = [m for m in ana.monitors if m in ISOC_BPMS]
 
+        ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
         ana.init()
         ana.info([ana.monitors.index(m) for m in hebt_bpms])
