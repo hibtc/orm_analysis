@@ -125,7 +125,11 @@ def plot_beampos_at(ana, prefix, obs_el='g3dg5g'):
         ax.set_xlabel(f'optic')
         ax.set_ylabel(f'beam position [mm]')
         #ax.set_title(y_ax.upper())
-        ax.plot(y_obs[iy]*1000, 'o', label=f'measured: {y_ax}')
+        ax.errorbar(
+            range(len(y_obs[iy])),
+            y_obs[iy]*1000,
+            y_err[iy]*1000,
+            fmt='.', label=f'measured: {y_ax}')
         # ax.plot(y_model[iy], label=f'model')
         # ax.plot(y_fit[iy]*1000, label='fit')
 
@@ -155,7 +159,7 @@ def plot_beampos_at(ana, prefix, obs_el='g3dg5g'):
 
         I = np.argsort(xdata)
         ax.errorbar(xdata[I], ydata[I], yerr[I],
-                    fmt='none', label="model", color=f'C0')
+                    fmt='.', label="model", color=f'C0')
 
         ax.plot(xdata[I], yoff[I], '-', label=f'measured ${offs:+.1f}$',
                 color='C1')
