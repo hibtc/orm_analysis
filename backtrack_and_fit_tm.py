@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 from orm_util import Analysis
+from orm_plot import savefig
 
 
 def main(record_files):
@@ -141,7 +142,7 @@ def plot_beampos_at(ana, prefix, obs_el='g3dg5g'):
     ax.set_ylim(ax.get_ylim()[0]-1, ax.get_ylim()[1])
     ax.legend(fancybox=True, shadow=True,
               loc='lower left', bbox_to_anchor=(0.0, 0.0), ncol=2)
-    fig.savefig(prefix+f'beampos_vs_optic.png', bbox_inches='tight', dpi=400)
+    savefig(fig, prefix+f'beampos_vs_optic')
     plt.clf()
 
 
@@ -171,7 +172,7 @@ def plot_beampos_at(ana, prefix, obs_el='g3dg5g'):
         ax.set_aspect(1)
 
     axes[0].set_ylabel(f'model [mm]')
-    fig.savefig(prefix+f'beam_pos_{obs_el}.png', bbox_inches='tight', dpi=400)
+    savefig(fig, prefix+f'beampos-{obs_el}')
     plt.clf()
 
 

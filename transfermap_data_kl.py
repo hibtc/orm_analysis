@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from orm_util import Analysis
+from orm_plot import savefig
 
 
 def main(record_files):
@@ -62,7 +63,7 @@ def main(record_files):
         ax.plot(kl[I], y_model[iy, I], label=f'model')
         ax.legend(loc='upper center', fancybox=True,
                   bbox_to_anchor=(-0.1, -0.2), shadow=True, ncol=4)
-        fig.savefig(prefix+f'{y_ax}.png', bbox_inches='tight')
+        savefig(fig, prefix+f'{y_ax}')
         plt.clf()
 
 

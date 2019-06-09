@@ -74,11 +74,8 @@ def make_orbit_plots(
         plot_orbit(fig, model, i, tw, measured,
                    base_orbit=base_orbit and base_orbit[i])
         fig.suptitle(f"Orbit for optic #{i}")
-        if save_to is None:
-            plt.show()
-        else:
-            knob = next(iter(optic), (None, None))[0]
-            plt.savefig(f'{save_to}-orbit-{i}-{knob}.png', dpi=300)
+        knob = next(iter(optic), (None, None))[0]
+        savefig(fig, save_to and f'{save_to}-orbit-{i}-{knob}', save_to)
         plt.clf()
 
 
@@ -92,10 +89,7 @@ def make_monitor_plots(
                 fig, monitor,
                 model, measured, base_orm, model_orbits, comment)
             fig.suptitle("Orbit response at {monitor}")
-            if save_to is None:
-                plt.show()
-            else:
-                plt.savefig(f'{save_to}-mon-{index}-{monitor}.png', dpi=300)
+            savefig(fig, save_to and f'{save_to}-mon-{index}-{monitor}')
             plt.clf()
 
 
@@ -109,10 +103,7 @@ def make_steerer_plots(
                 fig, steerer,
                 model, measured, base_orm, model_orbits, comment)
             fig.suptitle("Orbit response due to {steerer}")
-            if save_to is None:
-                plt.show()
-            else:
-                plt.savefig(f'{save_to}-ste-{index}-{steerer}.png', dpi=300)
+            savefig(fig, save_to and f'{save_to}-ste-{index}-{steerer}')
             plt.clf()
 
 
@@ -254,3 +245,11 @@ def create_twiss_figure(model, elem_types=None):
 def background_style(style):
     alpha = 1 if style.get('alpha') == 1 else 0.25
     return dict(style, alpha=alpha)
+
+
+def savefig(fig, to):
+    if to is None:
+        plt.show(fig)
+    else:
+        fig.savefig(to + '.png', dpi=400, bbox_inches='tight')
+        fig.savefig(to + '.pdf')

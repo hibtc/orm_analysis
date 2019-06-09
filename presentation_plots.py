@@ -32,7 +32,7 @@ import numpy as np
 from madgui.online.orbit import fit_particle_readouts, Readout
 from madgui.model.madx import Model
 from madgui.util.yaml import load_file
-from orm_plot import create_twiss_figure
+from orm_plot import create_twiss_figure, savefig
 
 # assumed standard error of mean on BPM in addition to statistical error:
 BPM_ERR = 0.0003    # [m]
@@ -135,13 +135,13 @@ def plot_single_optic_measurements():
         ]
 
         fig = plot_twissfigure(model, curves, ylim=(-25, +25))
-        fig.savefig(img_base + '-fit-25.png', dpi=400)
+        savefig(fig, img_base + '-fit-25')
 
         fig = plot_twissfigure(model, curves, ylim=(-40, +40))
-        fig.savefig(img_base + '-fit-40.png', dpi=400)
+        savefig(fig, img_base + '-fit-40')
 
         fig = plot_twissfigure(model, curves, ylim=(-200, +200))
-        fig.savefig(img_base + '-fit-200.png', dpi=400)
+        savefig(fig, img_base + '-fit-200')
 
 
 def backtrack(model, measured, bpms):
@@ -225,33 +225,33 @@ def plot_orms():
         if hebt_bpms:
             fig = ana.plot_orm(hebt_bpms)
             suptitle(fig, "Orbit response of pre-gantry BPMs")
-            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-hebt.png')
+            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-hebt')
         if gant_bpms:
             fig = ana.plot_orm(gant_bpms)
             suptitle(fig, "Orbit response of gantry BPMs")
-            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-gantry.png')
+            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-gantry')
 
         if len(hebt_bpms) >= 2:
             ana.backtrack(hebt_bpms)
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms)
                 suptitle(fig, "Orbit response of pre-gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-hebt.png')
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-hebt')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms)
                 suptitle(fig, "Orbit response of gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-gantry.png')
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-gantry')
 
         if len(isoc_bpms) >= 2:
             ana.backtrack(isoc_bpms)
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms)
                 suptitle(fig, "Orbit response of pre-gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-hebt.png')
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-hebt')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms)
                 suptitle(fig, "Orbit response of gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-gantry.png')
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-gantry')
 
 
 def suptitle(fig, title):
@@ -259,8 +259,6 @@ def suptitle(fig, title):
                  horizontalalignment='left',
                  verticalalignment='top')
 
-def savefig(fig, to):
-    fig.savefig(to, dpi=400)
 
 def strip_suffix(s, suffix):
     return s[:len(s) - len(suffix)] if s.endswith(suffix) else s
@@ -283,32 +281,28 @@ def args(*args, **kwargs):
 def copy_results():
     dest = '../../reports/2019-06-14-madgui/plots/'
     shutil.copy(
-        '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-25.png',
-        dest + 'orbit-simple-lim-25.png')
+        '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-25.pdf',
+        dest + 'orbit-simple-lim-25.pdf')
     shutil.copy(
-        '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-200.png',
-        dest + 'orbit-simple-lim-200.png')
+        '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-200.pdf',
+        dest + 'orbit-simple-lim-200.pdf')
     shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beam_pos_g3dg5g.png',
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beampos-g3dg5g.pdf',
         dest)
     shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beampos_vs_optic.png',
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beampos_vs_optic.pdf',
         dest)
     shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.png',
-        dest)
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-hebt.pdf',
+        dest + 'orm-backfit-hebt.pdf')
     shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-hebt.png',
-        dest + 'orm-backfit-hebt.png')
-    shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.png',
-        dest + 'orm-backfit-gantry.png')
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.pdf',
+        dest + 'orm-backfit-gantry.pdf')
 
 
 def main():
     from madgui.core.app import init_app
     init_app(['madgui'])
-
     plot_single_optic_measurements()
     plot_beampos_offset()
     plot_orms()
