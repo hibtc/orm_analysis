@@ -360,6 +360,19 @@ def copy_results():
     shutil.copy(
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-f0-init0-gantry.pdf',
         dest + 'orm-fitted-gantry.pdf')
+    # new results
+    shutil.copy(
+        '../data/orm/2019-06-10-orm_measurements/M6-E108-F1-I9-H1-orm-init0-horiz.pdf',
+        dest + 'orm-h1.pdf')
+    shutil.copy(
+        '../data/orm/2019-06-10-orm_measurements/M7-E108-F1-I9-H2-orm-init0-horiz.pdf',
+        dest + 'orm-h2.pdf')
+    shutil.copy(
+        '../data/orm/2019-06-10-orm_measurements/M8-E108-F1-I9-G10-orm-init0-horiz.pdf',
+        dest + 'orm-h3-horiz.pdf')
+    shutil.copy(
+        '../data/orm/2019-06-10-orm_measurements/M8-E108-F1-I9-G10-orm-init0-gantry.pdf',
+        dest + 'orm-h3-gantry.pdf')
 
 
 def main():
