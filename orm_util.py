@@ -167,7 +167,7 @@ class Analysis:
         self.errors = []
         self.values = []
         self._init_twiss = {}
-        self.absolute = True
+        self.mode = 'orm'           # abs | orm | hybrid
 
     def ensure_monitors_available(self, monitors):
         """Pick optics for which we have measured all of the given BPMs."""
@@ -218,10 +218,23 @@ class Analysis:
     def objective(self, model, use_stderr=True):
         measured = self.measured.orbits
         stderr = self.measured.stderr
-        if not self.absolute:
+        if self.mode == 'orm':
             model = model[:, :, 1:] - model[:, :, [0]]
             measured = measured[:, :, 1:] - measured[:, :, [0]]
             stderr = (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2) ** 0.5
+        elif self.mode == 'hybrid':
+            model = np.dstack([
+                model[:, :, 0],
+                model[:, :, 1:] - model[:, :, [0]],
+            ])
+            measured = np.dstack([
+                measured[:, :, 0],
+                measured[:, :, 1:] - measured[:, :, [0]],
+            ])
+            stderr = np.dstack([
+                stderr[:, :, 0],
+                (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2) ** 0.5
+            ])
         return (measured - model) / (stderr if use_stderr else 1)
 
     def info(self, sel=None, ddof=0):

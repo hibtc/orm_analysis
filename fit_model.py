@@ -3,14 +3,17 @@
 Fit model to measurements using the given error parameters.
 
 Usage:
-    ./fit_model.py [-m MODEL] (-e ERRORS) [-b] [-o FOLDER] [-a] [<MEASURED>...]
+    ./fit_model.py [-m MODEL] (-e ERRORS) [-b] [-o FOLDER]
+                   [-absolute | --hybrid]
+                   [<MEASURED>...]
 
 Options:
     -b, --backtrack                 Use backtracking
     -m MODEL, --model MODEL         Model path
     -e ERRORS, --errors ERRORS      File containing initial values for errors
     -o FOLDER, --output FOLDER      Output folder [default: results]
-    -a, --absolute                  Fit absolute orbits
+    --absolute                      Fit absolute orbits
+    --hybrid                        Fit absolute orbit + orbit response
 
 Arguments:
     <MEASURED>                      YAML files with madgui measurements
@@ -39,7 +42,12 @@ def main(args=None):
     model_path = opts['--model'] or '../hit_models/hht3'
     ana = Analysis.app(model_path, record_files)
     ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
-    ana.absolute = opts['--absolute']
+    if opts['--absolute']:
+        ana.mode = 'abs'
+    elif opts['--hybrid']:
+        ana.mode = 'hybrid'
+    else:
+        ana.mode = 'orm'
 
     if opts['--backtrack']:
         from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
