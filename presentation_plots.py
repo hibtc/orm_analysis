@@ -310,9 +310,9 @@ def plot_orms():
 
 
 def suptitle(fig, title):
-    fig.suptitle(title, x=0.04, y=0.98,
+    fig.suptitle(title, x=0.05, y=0.95,
                  horizontalalignment='left',
-                 verticalalignment='top')
+                 verticalalignment='center')
 
 
 def strip_suffix(s, suffix):
