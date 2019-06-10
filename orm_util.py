@@ -347,6 +347,7 @@ class Analysis:
             except TwissFailed:
                 return np.array([1e8])
             obj = self.objective(self.model_orbits, use_stderr)[sel][:, dims, :]
+            obj[np.isnan(obj)] = 0
             if fourier:
                 obj = np.fft.rfft(obj, axis=0)
                 obj = np.array([
