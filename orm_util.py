@@ -139,7 +139,7 @@ def _convert_orm_export(data):
         'model': data['base_optics'],
         'monitors': data['monitors'],
         'knobs': {knob for optic in data['optics'] for knob in optic},
-        'sequence': 'hht3',
+        'sequence': data.get('sequence', 'hht3'),
         'records': [
             {
                 'optics': optic,
@@ -424,3 +424,10 @@ def parse_errors(names):
         return {parse_error(k): v for k, v in names.items()}
     else:
         return [parse_error(k) for k in names]
+
+
+def filter_errors(errors, model):
+    if isinstance(errors, dict):
+        return {e: v for e, v in errors.items() if e.is_defined_for(model)}
+    else:
+        return [e for e in errors if e.is_defined_for(model)]

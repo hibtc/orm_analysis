@@ -33,7 +33,7 @@ from madgui.online.orbit import fit_particle_readouts, Readout
 from madgui.model.madx import Model
 from madgui.util.yaml import load_file
 from orm_plot import create_twiss_figure, savefig
-from orm_util import parse_errors
+from orm_util import parse_errors, filter_errors
 
 
 # assumed standard error of mean on BPM in addition to statistical error:
@@ -45,7 +45,9 @@ BPM_ERR = 0.0003    # [m]
 # ====
 
 DATA_PREFIX = '../data/'
-HEBT_BPMS = ['h1dg1g', 'h1dg2g', 'h2dg2g', 'h3dg3g', 'b3dg2g', 'b3dg3g']
+HEBT_BPMS = ['h1dg1g', 'h1dg2g', 'h2dg2g', 'h3dg3g', 'b3dg2g', 'b3dg3g',
+             'b1dg2g', 'b1dg3g', 't1dg2g', 't1dg1g', 't1df1',
+             'b2dg2g', 'b2dg3g', 't2dg2g', 't2dg1g', 't2df1']
 ISOC_BPMS = ['t3dg2g', 't3dg1g', 't3df1']
 
 # Folders with corresponding '.knobs.str' and '.bpms.yml' files with
@@ -60,17 +62,20 @@ single_optic_measurements_folders = [
 # measurement, and contains multiple YAML files, each one corresponding to a
 # set of monitors:
 orm_measurements_folders = [
-    'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/',
-    'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G4/',
-    'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G4-ISO/',
-    'orm/2019-01-20-orm_measurements/M3-E108-F1-I9-G10-ISO/',
-    'orm/2019-01-20-orm_measurements/M8-E108-F1-I9-G1-ISO/',
-    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/0-h3qd22/',
-    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/1-b3qd12/',
-    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/2-g3qd22/',
-    'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/3-g3qd42/',
-    'orm/2019-05-11-orm_measurements/M8-E108-F1-I9-G1/',
-    'orm/2019-05-11-orm_measurements/M8-E108-F1-I9-G1-LIN/',
+    ('hht3', 'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/'),
+    ('hht3', 'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G4/'),
+    ('hht3', 'orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G4-ISO/'),
+    ('hht3', 'orm/2019-01-20-orm_measurements/M3-E108-F1-I9-G10-ISO/'),
+    ('hht3', 'orm/2019-01-20-orm_measurements/M8-E108-F1-I9-G1-ISO/'),
+    ('hht3', 'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/0-h3qd22/'),
+    ('hht3', 'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/1-b3qd12/'),
+    ('hht3', 'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/2-g3qd22/'),
+    ('hht3', 'orm/2019-01-20-quadscan/M8-E108-F1-I9-G1/3-g3qd42/'),
+    ('hht3', 'orm/2019-05-11-orm_measurements/M8-E108-F1-I9-G1/'),
+    ('hht3', 'orm/2019-05-11-orm_measurements/M8-E108-F1-I9-G1-LIN/'),
+    ('hht1', 'orm/2019-06-10-orm_measurements/M6-E108-F1-I9-H1/'),
+    ('hht2', 'orm/2019-06-10-orm_measurements/M7-E108-F1-I9-H2/'),
+    ('hht3', 'orm/2019-06-10-orm_measurements/M8-E108-F1-I9-G10/'),
 ]
 
 # CSV files with BPM profile exports:
@@ -209,10 +214,10 @@ def plot_beampos_offset():
     print("\nPlotting beam position / offsets at G3DG5G")
     from orm_util import Analysis
     from backtrack_and_fit_tm import plot_beampos_at
-    for folder in orm_measurements_folders:
+    for seq, folder in orm_measurements_folders:
         record_files = DATA_PREFIX + folder + '*.yml'
         print(record_files)
-        ana = Analysis.session('../hit_models/hht3', record_files)
+        ana = Analysis.session(f'../hit_models/{seq}', record_files)
         ana.absolute = False
         ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         if ana.ensure_monitors_available(['g3dg5g'] + ISOC_BPMS):
@@ -223,11 +228,11 @@ def plot_beampos_offset():
 def plot_orms():
     print("Plotting ORMs for each session")
     from orm_util import Analysis
-    for folder in orm_measurements_folders:
+    for seq, folder in orm_measurements_folders:
         record_files = DATA_PREFIX + folder + '*.yml'
         print(record_files)
 
-        ana = Analysis.session('../hit_models/hht3', record_files)
+        ana = Analysis.session(f'../hit_models/{seq}', record_files)
         ana.absolute = False
 
         hebt_bpms = [m for m in ana.monitors if m in HEBT_BPMS]
@@ -243,8 +248,8 @@ def plot_orms():
         ana.info([ana.monitors.index(m) for m in gant_bpms])
         if hebt_bpms:
             fig = ana.plot_orm(hebt_bpms)
-            suptitle(fig, "Orbit response of pre-gantry BPMs")
-            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-hebt')
+            suptitle(fig, "Orbit response of horizontal BPMs")
+            savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-horiz')
         if gant_bpms:
             fig = ana.plot_orm(gant_bpms)
             suptitle(fig, "Orbit response of gantry BPMs")
@@ -252,8 +257,8 @@ def plot_orms():
 
         fit_orms = []
         for errfile in fit_files:
-            print(errfile)
             errors = parse_errors(load_file(errfile))
+            errors = filter_errors(errors, ana.model)
             ana.apply_errors(errors.keys(), errors.values())
             ana.init()
             fit_orms.append(ana.model_orbits)
@@ -262,17 +267,18 @@ def plot_orms():
         for ifit, fitted in enumerate(fit_orms):
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms, fitted)
-                suptitle(fig, "Orbit response of pre-gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-hebt')
+                suptitle(fig, "Orbit response of horizontal BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-horiz')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms, fitted)
                 suptitle(fig, "Orbit response of gantry BPMs")
                 savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-gantry')
 
-        ana = Analysis.session('../hit_models/hht3', record_files)
+        ana = Analysis.session(f'../hit_models/{seq}', record_files)
         ana.absolute = False
         ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
+        ana.init()
 
         # As it turns out, the ORMs obtained by using different initial
         # conditions are very similar to those assuming x=y=px=py=0. We
@@ -283,8 +289,8 @@ def plot_orms():
             ana.backtrack(hebt_bpms)
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms)
-                suptitle(fig, "Orbit response of pre-gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-hebt')
+                suptitle(fig, "Orbit response of horizontal BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-horiz')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms)
                 suptitle(fig, "Orbit response of gantry BPMs")
@@ -294,8 +300,8 @@ def plot_orms():
             ana.backtrack(isoc_bpms)
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms)
-                suptitle(fig, "Orbit response of pre-gantry BPMs")
-                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-hebt')
+                suptitle(fig, "Orbit response of horizontal BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-horiz')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms)
                 suptitle(fig, "Orbit response of gantry BPMs")
@@ -327,7 +333,7 @@ def args(*args, **kwargs):
 
 
 def copy_results():
-    dest = '../../reports/2019-06-14-madgui/plots/'
+    dest = '../../reports/2019-06-14-madgui/fig/'
     shutil.copy(
         '../data/correct/2018-07-03-correct/gantry_p_e1_g0-fit-25.pdf',
         dest + 'orbit-simple-lim-25.pdf')
@@ -341,15 +347,15 @@ def copy_results():
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1/beampos_vs_optic.pdf',
         dest)
     shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-hebt.pdf',
-        dest + 'orm-backfit-hebt.pdf')
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-horiz.pdf',
+        dest + 'orm-backfit-horiz.pdf')
     shutil.copy(
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.pdf',
         dest + 'orm-backfit-gantry.pdf')
     # fitted
     shutil.copy(
-        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-f0-init0-hebt.pdf',
-        dest + 'orm-fitted-hebt.pdf')
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-f0-init0-horiz.pdf',
+        dest + 'orm-fitted-horiz.pdf')
     shutil.copy(
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-f0-init0-gantry.pdf',
         dest + 'orm-fitted-gantry.pdf')
