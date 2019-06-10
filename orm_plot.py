@@ -9,7 +9,7 @@ from madgui.plot.twissfigure import (
     plot_element_indicators, with_outline, ELEM_STYLES)
 
 
-def plot_orm(model, measured, orbits, monitors):
+def plot_orm(model, measured, orbits, monitors, fitted=None):
     fig = plt.figure(1)
     fig.clf()
 
@@ -19,6 +19,8 @@ def plot_orm(model, measured, orbits, monitors):
     measured_orm = measured.orbits[:, :, 1:] - measured.orbits[:, :, [0]]
     measured_errors = (measured.stderr[:, :, 1:] ** 2 +
                        measured.stderr[:, :, [0]] ** 2) ** 0.5
+    if fitted is not None:
+        fitted = fitted[:, :, 1:] - fitted[:, :, [0]]
 
     for iy, name in enumerate("xy"):
         ax = fig.add_subplot(2, 1, 1+iy)
@@ -27,6 +29,7 @@ def plot_orm(model, measured, orbits, monitors):
         num_entries = []
         ydata_model = []
         ydata_measured = []
+        ydata_fit = []
         errors = []
 
         for mon in monitors:
@@ -39,12 +42,17 @@ def plot_orm(model, measured, orbits, monitors):
             ydata_measured.extend(entry_measured[defined_region])
             errors.extend(entry_errors[defined_region])
             num_entries.append(round(sum(defined_region)))
+            if fitted is not None:
+                ydata_fit.extend(fitted[idx, iy][defined_region]*1000)
 
         xdata = range(len(ydata_model))
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.plot(xdata, ydata_model, '-', color='C0', label="model")
         ax.errorbar(xdata, ydata_measured, errors, fmt='.',
                     color='C1', label="measured")
+
+        if fitted is not None:
+            ax.plot(xdata, ydata_fit, '-', color='C2', label='fitted')
 
         cumsum = np.cumsum(num_entries)
         for pos in cumsum[:-1]:

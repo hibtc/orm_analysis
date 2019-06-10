@@ -33,6 +33,8 @@ from madgui.online.orbit import fit_particle_readouts, Readout
 from madgui.model.madx import Model
 from madgui.util.yaml import load_file
 from orm_plot import create_twiss_figure, savefig
+from orm_util import parse_errors
+
 
 # assumed standard error of mean on BPM in addition to statistical error:
 BPM_ERR = 0.0003    # [m]
@@ -86,6 +88,22 @@ bpm_profile_exports = [
 # what about offset calibrations?
 offset_calib_data = [
     'offsets/2018-05-06-offset-calibration/',
+]
+
+
+fit_files = [
+#   'fits/a_0_fit_14.yml',
+    'fits/a_0_fit_62.yml',
+#   'fits/a_2_fit_72.yml',
+#   'fits/a_3_fit_63.yml',
+#   'fits/b_0_fit.txt',
+#   'fits/b_1_fit.txt',
+#   'fits/b_2_fit_G1.txt',
+#   'fits/b_3_fit_G4.txt',
+#   'fits/c_0_fit_41.23.txt',
+#   'fits/c_1_fit_15.44.txt',
+#   'fits/c_2_fit_40.74.txt',
+#   'fits/c_3_fit_24.33.txt',
 ]
 
 
@@ -220,6 +238,7 @@ def plot_orms():
         ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
         ana.init()
+        base_orbits = ana.model_orbits
         ana.info([ana.monitors.index(m) for m in hebt_bpms])
         ana.info([ana.monitors.index(m) for m in gant_bpms])
         if hebt_bpms:
@@ -231,6 +250,35 @@ def plot_orms():
             suptitle(fig, "Orbit response of gantry BPMs")
             savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-gantry')
 
+        fit_orms = []
+        for errfile in fit_files:
+            print(errfile)
+            errors = parse_errors(load_file(errfile))
+            ana.apply_errors(errors.keys(), errors.values())
+            ana.init()
+            fit_orms.append(ana.model_orbits)
+
+        ana.model_orbits = base_orbits
+        for ifit, fitted in enumerate(fit_orms):
+            if hebt_bpms:
+                fig = ana.plot_orm(hebt_bpms, fitted)
+                suptitle(fig, "Orbit response of pre-gantry BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-hebt')
+            if gant_bpms:
+                fig = ana.plot_orm(gant_bpms, fitted)
+                suptitle(fig, "Orbit response of gantry BPMs")
+                savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-gantry')
+
+        ana = Analysis.session('../hit_models/hht3', record_files)
+        ana.absolute = False
+        ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
+        ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
+
+        # As it turns out, the ORMs obtained by using different initial
+        # conditions are very similar to those assuming x=y=px=py=0. We
+        # therefore do currently repeat the fitted error plots here.
+
+        ana.apply_errors([], [])
         if len(hebt_bpms) >= 2:
             ana.backtrack(hebt_bpms)
             if hebt_bpms:
@@ -298,6 +346,13 @@ def copy_results():
     shutil.copy(
         '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-backfit-gantry.pdf',
         dest + 'orm-backfit-gantry.pdf')
+    # fitted
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-f0-init0-hebt.pdf',
+        dest + 'orm-fitted-hebt.pdf')
+    shutil.copy(
+        '../data/orm/2018-10-20-orm_measurements/M8-E108-F1-I9-G1-orm-f0-init0-gantry.pdf',
+        dest + 'orm-fitted-gantry.pdf')
 
 
 def main():

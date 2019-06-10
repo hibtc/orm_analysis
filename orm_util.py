@@ -254,11 +254,11 @@ class Analysis:
     def get_selected_monitors(self, selected):
         return [self.monitors.index(m.lower()) for m in selected]
 
-    def plot_orm(self, monitors=None):
+    def plot_orm(self, monitors=None, fitted=None):
         if monitors is None:
             monitors = self.monitors
         from orm_plot import plot_orm
-        return plot_orm(self.model, self.measured, self.model_orbits, monitors)
+        return plot_orm(self.model, self.measured, self.model_orbits, monitors, fitted)
 
     def plot_monitors(self, select=None, save_to=None, base_orm=None):
         if select is None:
