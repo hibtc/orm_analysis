@@ -303,10 +303,10 @@ class Analysis:
             tol=1e-8, use_stderr=True, save_to=None, **kwargs):
 
         if isinstance(errors, dict):
-            x0 = np.array(list(errors.values()))
+            x0 = np.array(list(errors.values()), dtype=np.float64)
             errors = list(errors.keys())
         else:
-            x0 = np.zeros(len(errors))
+            x0 = np.zeros(len(errors), dtype=np.float64)
 
         model = self.model
         err_names = ', '.join(map(repr, errors))
