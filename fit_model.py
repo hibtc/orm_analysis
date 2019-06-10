@@ -4,7 +4,7 @@ Fit model to measurements using the given error parameters.
 
 Usage:
     ./fit_model.py [-m MODEL] (-e ERRORS) [-b] [-o FOLDER] [--stderr VAL]
-                   [-absolute | --hybrid]
+                   [-absolute | --hybrid] [-i ERRORS]
                    [<MEASURED>...]
 
 Options:
@@ -15,6 +15,7 @@ Options:
     --absolute                      Fit absolute orbits
     --hybrid                        Fit absolute orbit + orbit response
     --stderr VALUE                  Set BPM position stderr [default: 0.0003]
+    -i ERRORS                       Set initial/global errors
 
 Arguments:
     <MEASURED>                      YAML files with madgui measurements
@@ -53,6 +54,10 @@ def main(args=None):
         ana.mode = 'orm'
 
     ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
+
+    if opts['-i']:
+        init_errors = parse_errors(yaml.load_file(opts['-i']))
+        ana.apply_errors(init_errors.keys(), init_errors.values())
 
     if opts['--backtrack']:
         from_monitors = ['t3dg2g', 't3dg1g', 't3df1']
