@@ -38,7 +38,7 @@ def main(args=None):
 
     model_path = opts['--model'] or '../hit_models/hht3'
     ana = Analysis.app(model_path, record_files)
-    ana.model.update_twiss_args(x=0, y=0, px=0, py=0)
+    ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
     ana.absolute = opts['--absolute']
 
     if opts['--backtrack']:
