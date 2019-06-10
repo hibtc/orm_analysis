@@ -341,6 +341,7 @@ class Analysis:
         dims = [i for i, c in enumerate("xy") if c in mode]
 
         def objective(values):
+            print({k: v for k, v in zip(errors, values - x0) if v})
             try:
                 print(".", end='', flush=True)
                 self.model_orbits = self.compute_model_orbits(errors, values)
@@ -360,6 +361,7 @@ class Analysis:
             objective, x0, tol=tol,
             delta=delta, iterations=iterations, callback=callback, **kwargs)
         print(result.message)
+        print(result.x)
         self.apply_errors(errors, result.x)
 
         if save_to is not None:
