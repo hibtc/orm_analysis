@@ -3,14 +3,13 @@
 Fit model to measurements using the given error parameters.
 
 Usage:
-    ./fit_model.py [-m MODEL] (-e ERRORS) [-b] [-o FOLDER] [--stderr VAL]
+    ./fit_model.py [-m MODEL] [-b] [-o FOLDER] [--stderr VAL]
                    [-absolute | --hybrid] [-i ERRORS]
-                   [<MEASURED>...]
+                   <ERRORS> [<MEASURED>...]
 
 Options:
     -b, --backtrack                 Use backtracking
     -m MODEL, --model MODEL         Model path
-    -e ERRORS, --errors ERRORS      File containing initial values for errors
     -o FOLDER, --output FOLDER      Output folder [default: results]
     --absolute                      Fit absolute orbits
     --hybrid                        Fit absolute orbit + orbit response
@@ -18,6 +17,7 @@ Options:
     -i ERRORS                       Set initial/global errors
 
 Arguments:
+    <ERRORS>                        YAML file containing initial error values
     <MEASURED>                      YAML files with madgui measurements
 """
 
@@ -66,7 +66,7 @@ def main(args=None):
 
     ana.init()
 
-    errors = parse_errors(yaml.load_file(opts['--errors']))
+    errors = parse_errors(yaml.load_file(opts['<ERRORS>']))
 
     options = dict(
         algorithm='lstsq',
