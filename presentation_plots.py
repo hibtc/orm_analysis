@@ -230,6 +230,7 @@ def plot_orms():
     from orm_util import Analysis
     for seq, folder in orm_measurements_folders:
         record_files = DATA_PREFIX + folder + '*.yml'
+        name = seq[-2:].upper() + (' (pre gantry)' if seq == 'hht3' else '')
         print(record_files)
 
         ana = Analysis.session(f'../hit_models/{seq}', record_files)
@@ -248,11 +249,11 @@ def plot_orms():
         ana.info([ana.monitors.index(m) for m in gant_bpms])
         if hebt_bpms:
             fig = ana.plot_orm(hebt_bpms)
-            suptitle(fig, "Orbit response of horizontal BPMs")
+            suptitle(fig, f"Orbit response: {name}")
             savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-horiz')
         if gant_bpms:
             fig = ana.plot_orm(gant_bpms)
-            suptitle(fig, "Orbit response of gantry BPMs")
+            suptitle(fig, "Orbit response: T3 (gantry)")
             savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-init0-gantry')
 
         fit_orms = []
@@ -267,11 +268,11 @@ def plot_orms():
         for ifit, fitted in enumerate(fit_orms):
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms, fitted)
-                suptitle(fig, "Orbit response of horizontal BPMs")
+                suptitle(fig, f"Orbit response: {name}")
                 savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-horiz')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms, fitted)
-                suptitle(fig, "Orbit response of gantry BPMs")
+                suptitle(fig, "Orbit response: T3 (gantry)")
                 savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-gantry')
 
         ana = Analysis.session(f'../hit_models/{seq}', record_files)
@@ -289,22 +290,22 @@ def plot_orms():
             ana.backtrack(hebt_bpms)
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms)
-                suptitle(fig, "Orbit response of horizontal BPMs")
+                suptitle(fig, f"Orbit response: {name}")
                 savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-horiz')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms)
-                suptitle(fig, "Orbit response of gantry BPMs")
+                suptitle(fig, "Orbit response: T3 (gantry)")
                 savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backfit-gantry')
 
         if len(isoc_bpms) >= 2:
             ana.backtrack(isoc_bpms)
             if hebt_bpms:
                 fig = ana.plot_orm(hebt_bpms)
-                suptitle(fig, "Orbit response of horizontal BPMs")
+                suptitle(fig, f"Orbit response: {name}")
                 savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-horiz')
             if gant_bpms:
                 fig = ana.plot_orm(gant_bpms)
-                suptitle(fig, "Orbit response of gantry BPMs")
+                suptitle(fig, "Orbit response: T3 (gantry)")
                 savefig(fig, DATA_PREFIX + folder[:-1] + '-orm-backisoc-gantry')
 
 

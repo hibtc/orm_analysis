@@ -58,6 +58,8 @@ def plot_orm(model, measured, orbits, monitors, fitted=None):
         for pos in cumsum[:-1]:
             ax.axvline(pos + 0.5, linestyle='--', color='k', linewidth=0.5)
 
+        ax.tick_params(axis='both', direction='in', top=True, right=True)
+
     for mon, pos in zip(monitors, cumsum):
         ax.text(pos-0.5, 0.05, mon,
                 horizontalalignment='right',
@@ -66,10 +68,12 @@ def plot_orm(model, measured, orbits, monitors, fitted=None):
                 alpha=0.6,
                 transform=ax.get_xaxis_transform())
 
+    fig.axes[0].set_xticklabels([])
     fig.axes[-1].set_xlabel("entry")
     fig.axes[0].legend(
-        loc='lower right', bbox_to_anchor=(1.0, 1.05), ncol=2)
+        loc='center right', bbox_to_anchor=(1.015, 1.195), ncol=2)
     fig.suptitle("Orbit response")
+    fig.subplots_adjust(hspace=0.08)
     return fig
 
 
