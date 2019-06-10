@@ -167,7 +167,7 @@ class Analysis:
         self.errors = []
         self.values = []
         self._init_twiss = {}
-        self.absolute = True
+        self.mode = 'orm'           # abs | orm | hybrid
 
     def ensure_monitors_available(self, monitors):
         """Pick optics for which we have measured all of the given BPMs."""
@@ -218,10 +218,23 @@ class Analysis:
     def objective(self, model, use_stderr=True):
         measured = self.measured.orbits
         stderr = self.measured.stderr
-        if not self.absolute:
+        if self.mode == 'orm':
             model = model[:, :, 1:] - model[:, :, [0]]
             measured = measured[:, :, 1:] - measured[:, :, [0]]
             stderr = (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2) ** 0.5
+        elif self.mode == 'hybrid':
+            model = np.dstack([
+                model[:, :, 0],
+                model[:, :, 1:] - model[:, :, [0]],
+            ])
+            measured = np.dstack([
+                measured[:, :, 0],
+                measured[:, :, 1:] - measured[:, :, [0]],
+            ])
+            stderr = np.dstack([
+                stderr[:, :, 0],
+                (stderr[:, :, 1:]**2 + stderr[:, :, [0]]**2) ** 0.5
+            ])
         return (measured - model) / (stderr if use_stderr else 1)
 
     def info(self, sel=None, ddof=0):
@@ -303,10 +316,10 @@ class Analysis:
             tol=1e-8, use_stderr=True, save_to=None, **kwargs):
 
         if isinstance(errors, dict):
-            x0 = np.array(list(errors.values()))
+            x0 = np.array(list(errors.values()), dtype=np.float64)
             errors = list(errors.keys())
         else:
-            x0 = np.zeros(len(errors))
+            x0 = np.zeros(len(errors), dtype=np.float64)
 
         model = self.model
         err_names = ', '.join(map(repr, errors))
@@ -341,12 +354,14 @@ class Analysis:
         dims = [i for i, c in enumerate("xy") if c in mode]
 
         def objective(values):
+            print({k: v for k, v in zip(errors, values - x0) if v})
             try:
                 print(".", end='', flush=True)
                 self.model_orbits = self.compute_model_orbits(errors, values)
             except TwissFailed:
                 return np.array([1e8])
             obj = self.objective(self.model_orbits, use_stderr)[sel][:, dims, :]
+            obj[np.isnan(obj)] = 0
             if fourier:
                 obj = np.fft.rfft(obj, axis=0)
                 obj = np.array([
@@ -359,6 +374,7 @@ class Analysis:
             objective, x0, tol=tol,
             delta=delta, iterations=iterations, callback=callback, **kwargs)
         print(result.message)
+        print(result.x)
         self.apply_errors(errors, result.x)
 
         if save_to is not None:

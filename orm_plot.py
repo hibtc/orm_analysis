@@ -87,7 +87,7 @@ def make_orbit_plots(
                    base_orbit=base_orbit and base_orbit[i])
         fig.suptitle(f"Orbit for optic #{i}")
         knob = next(iter(optic), (None, None))[0]
-        savefig(fig, save_to and f'{save_to}-orbit-{i}-{knob}', save_to)
+        savefig(fig, save_to and f'{save_to}-orbit-{i}-{knob}')
         plt.clf()
 
 

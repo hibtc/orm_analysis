@@ -218,7 +218,7 @@ def plot_beampos_offset():
         record_files = DATA_PREFIX + folder + '*.yml'
         print(record_files)
         ana = Analysis.session(f'../hit_models/{seq}', record_files)
-        ana.absolute = False
+        ana.mode = 'hybrid'
         ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         if ana.ensure_monitors_available(['g3dg5g'] + ISOC_BPMS):
             prefix = DATA_PREFIX + folder
@@ -234,7 +234,7 @@ def plot_orms():
         print(record_files)
 
         ana = Analysis.session(f'../hit_models/{seq}', record_files)
-        ana.absolute = False
+        ana.mode = 'hybrid'
 
         hebt_bpms = [m for m in ana.monitors if m in HEBT_BPMS]
         gant_bpms = [m for m in ana.monitors if m not in HEBT_BPMS
@@ -276,7 +276,7 @@ def plot_orms():
                 savefig(fig, DATA_PREFIX + folder[:-1] + f'-orm-f{ifit}-init0-gantry')
 
         ana = Analysis.session(f'../hit_models/{seq}', record_files)
-        ana.absolute = False
+        ana.mode = 'hybrid'
         ana.measured.stderr = (ana.measured.stderr**2 + BPM_ERR**2)**0.5
         ana.model.update_twiss_args(dict(x=0, y=0, px=0, py=0))
         ana.init()
