@@ -66,8 +66,6 @@ def main(args=None):
 
     ana.init()
 
-    ana.plot_orbit(save_to=prefix+'/0-init')
-
     errors = parse_errors(yaml.load_file(opts['--errors']))
 
     options = dict(
@@ -83,10 +81,6 @@ def main(args=None):
     result = ana.fit(errors, save_to=prefix+'/2-fit.txt', **options)
 
     print(result)
-
-    ana.plot_monitors(save_to=prefix+'/3-final')
-    ana.plot_orbit(save_to=prefix+'/3-final')
-    ana.plot_steerers(save_to=prefix+'/3-final')
 
 
 if __name__ == '__main__':
