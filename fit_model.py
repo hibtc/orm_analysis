@@ -3,14 +3,14 @@
 Fit model to measurements using the given error parameters.
 
 Usage:
-    ./fit_model.py [-m MODEL] [-b] [-o FOLDER] [--stderr VAL]
+    ./fit_model.py [-m MODEL] [-b] [-o OUTPUT] [--stderr VAL]
                    [-absolute | --hybrid] [-i ERRORS]
                    <ERRORS> [<MEASURED>...]
 
 Options:
     -b, --backtrack                 Use backtracking
     -m MODEL, --model MODEL         Model path
-    -o FOLDER, --output FOLDER      Output folder [default: results]
+    -o OUTPUT, --output OUTPUT      Output file
     --absolute                      Fit absolute orbits
     --hybrid                        Fit absolute orbit + orbit response
     --stderr VALUE                  Set BPM position stderr [default: 0.0003]
@@ -34,8 +34,10 @@ from orm_util import Analysis, parse_errors
 def main(args=None):
 
     opts = docopt(__doc__, args)
-    prefix = opts['--output']
-    os.makedirs(prefix, exist_ok=True)
+    input_file = opts['<ERRORS>']
+    output_file = opts['--output']
+    if not output_file:
+        output_file = os.path.splitext(input_file)[0] + '-fit.yml'
 
     BPM_ERR = float(opts['--stderr'])
 
@@ -66,7 +68,7 @@ def main(args=None):
 
     ana.init()
 
-    errors = parse_errors(yaml.load_file(opts['<ERRORS>']))
+    errors = parse_errors(yaml.load_file(input_file))
 
     options = dict(
         algorithm='lstsq',
@@ -78,7 +80,7 @@ def main(args=None):
         rcond=1e-6,
     )
 
-    result = ana.fit(errors, save_to=prefix+'/2-fit.txt', **options)
+    result = ana.fit(errors, save_to=output_file, **options)
 
     print(result)
 
